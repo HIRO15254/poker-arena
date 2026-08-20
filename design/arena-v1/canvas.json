@@ -1,0 +1,13 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "リーダーボード", "x": 0, "y": 0, "w": 1280, "h": 800 },
+    { "file": "Bots.dc.html", "title": "マイbot", "x": 1420, "y": 0, "w": 1280, "h": 800 },
+    { "file": "LiveTable.dc.html", "title": "ライブ観戦", "x": 0, "y": 940, "w": 1280, "h": 800 },
+    { "file": "Replayer.dc.html", "title": "ハンドリプレイヤー", "x": 1420, "y": 940, "w": 1280, "h": 800 }
+  ],
+  "annotations": [
+    { "id": "review-brief", "x": 0, "y": -170, "w": 420, "text": "Poker Bot Arena v1 — 実装前レビュー用の静的モック(4画面)。\nCryst Design System 準拠: ダーク基調 / 青1色アクセント / Noto Sans JP + JetBrains Mono / ヘアライン区切り / Tabler風アイコン。" },
+    { "id": "naming-note", "x": 460, "y": -170, "w": 320, "text": "サイト名は未決。サイドバーの「Poker Arena」は仮置き。決まり次第差し替え。" }
+  ],
+  "launch": { "view": "canvas" }
+}

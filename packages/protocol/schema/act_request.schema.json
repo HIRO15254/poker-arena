@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://poker-arena.dev/schema/act_request.schema.json",
+  "title": "ActRequest",
+  "description": "アリーナ → bot のアクション要求。金額は全てチップ絶対値(1bb = 100)。",
+  "type": "object",
+  "required": ["type", "hand_id", "seat", "hole_cards", "board", "street", "pot", "players", "actions", "legal_actions"],
+  "properties": {
+    "type": { "const": "act" },
+    "hand_id": { "type": "string" },
+    "seat": { "type": "integer", "minimum": 0, "maximum": 5 },
+    "hole_cards": { "type": "array", "items": { "$ref": "#/$defs/card" }, "minItems": 2, "maxItems": 2 },
+    "board": { "type": "array", "items": { "$ref": "#/$defs/card" }, "maxItems": 5 },
+    "street": { "enum": ["preflop", "flop", "turn", "river"] },
+    "pot": { "type": "integer", "minimum": 0 },
+    "players": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["seat", "stack", "bet", "status"],
+        "properties": {
+          "seat": { "type": "integer" },
+          "stack": { "type": "integer", "minimum": 0 },
+          "bet": { "type": "integer", "minimum": 0 },
+          "status": { "enum": ["active", "folded", "allin"] }
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["seat", "street", "action"],
+        "properties": {
+          "seat": { "type": "integer" },
+          "street": { "enum": ["preflop", "flop", "turn", "river"] },
+          "action": { "enum": ["post_sb", "post_bb", "fold", "check", "call", "bet", "raise"] },
+          "amount": { "type": "integer", "minimum": 0 },
+          "all_in": { "type": "boolean" },
+          "forced": { "type": "boolean" }
+        }
+      }
+    },
+    "legal_actions": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "object", "required": ["action"], "properties": { "action": { "const": "fold" } }, "additionalProperties": false },
+          { "type": "object", "required": ["action"], "properties": { "action": { "const": "check" } }, "additionalProperties": false },
+          { "type": "object", "required": ["action", "amount"], "properties": { "action": { "const": "call" }, "amount": { "type": "integer" } }, "additionalProperties": false },
+          { "type": "object", "required": ["action", "min", "max"], "properties": { "action": { "const": "raise" }, "min": { "type": "integer" }, "max": { "type": "integer" } }, "additionalProperties": false }
+        ]
+      }
+    },
+    "time_remaining_ms": { "type": "integer", "minimum": 0 },
+    "time_bank_ms": { "type": "integer", "minimum": 0 }
+  },
+  "$defs": {
+    "card": { "type": "string", "pattern": "^[23456789TJQKA][cdhs]$" }
+  }
+}

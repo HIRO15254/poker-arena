@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+# 生成物(デザインカンバスの出力・Claude Design 同期用バンドル)
+design/arena-v1/poker-arena-v1-screens.html
+design/claude-design-bundle/

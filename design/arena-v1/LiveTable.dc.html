@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+  <style>
+    :root{
+      --background:#08090a;--foreground:#f7f8f8;--card:#141516;--popover:#1c1d1f;
+      --primary:#4593f8;--secondary:#1f2023;--muted:#17181b;--muted-foreground:#8a8f98;
+      --accent:#1c1e22;--destructive:#f2555a;--success:#4cb782;--warning:#f2994a;--info:#4ea7fc;
+      --border:#26282d;--input:#2e3035;--ring:#5ea1f9;--selection:rgba(69,147,248,0.30);
+      --font-sans:'Noto Sans JP','Inter',-apple-system,'Hiragino Sans',sans-serif;
+      --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',monospace;
+    }
+    body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:13px;letter-spacing:-0.005em;-webkit-font-smoothing:antialiased}
+    a{color:var(--primary)}a:hover{color:var(--ring)}
+    .mono{font-family:var(--font-mono)}
+    .icn{width:16px;height:16px;flex:none}
+    .icn14{width:14px;height:14px;flex:none}
+    .side{width:244px;flex:none;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px 8px;box-sizing:border-box}
+    .brand{display:flex;align-items:center;gap:8px;padding:6px 8px 16px;font-weight:600;font-size:13px;letter-spacing:-0.015em}
+    .slabel{font-size:11px;color:var(--muted-foreground);padding:14px 8px 4px;letter-spacing:0.06em}
+    .nav{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:6px;color:var(--muted-foreground);font-weight:500;font-size:13px}
+    .nav.on{background:var(--accent);color:var(--foreground)}
+    .top{height:48px;flex:none;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-sizing:border-box}
+    .top h1{font-size:15px;font-weight:600;letter-spacing:-0.015em;margin:0}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid transparent;white-space:nowrap;box-sizing:border-box}
+    .btn-sec{background:var(--card);color:var(--foreground);border-color:var(--input);box-shadow:0 1px 2px rgba(0,0,0,0.35)}
+    .bdg{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:9999px;font-size:11px;font-weight:500;white-space:nowrap}
+    .bdg .dt{width:6px;height:6px;border-radius:50%;background:currentColor}
+    .bdg-success{background:rgba(76,183,130,.15);color:var(--success)}
+    .bdg-outline{background:transparent;border:1px solid var(--border);color:var(--muted-foreground)}
+    .avt{width:20px;height:20px;border-radius:5px;background:var(--secondary);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;color:var(--muted-foreground);flex:none}
+    .seat{position:absolute;width:172px;background:var(--popover);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,0.35)}
+    .seat .nm{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:13px;font-weight:500;min-width:0}
+    .seat .st{display:flex;align-items:baseline;gap:8px}
+    .seat .stack{font-family:var(--font-mono);font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+    .seat .pos{font-size:10px;color:var(--muted-foreground);letter-spacing:0.06em}
+    .seat.fold{opacity:.45}
+    .seat.act{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary),0 1px 2px rgba(0,0,0,0.35)}
+    .tbar{position:absolute;left:12px;right:12px;bottom:6px;height:3px;border-radius:2px;background:var(--secondary)}
+    .tbar span{display:block;height:3px;width:62%;border-radius:2px;background:var(--primary)}
+    .cb{width:22px;height:30px;border-radius:3px;background:var(--secondary);border:1px solid var(--input);position:relative;flex:none}
+    .cb::after{content:'';position:absolute;inset:3px;border-radius:1px;border:1px solid var(--input)}
+    .pc{width:48px;height:66px;border-radius:5px;background:#fbfbfc;border:1px solid rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--font-mono);font-weight:600;font-size:19px;box-sizing:border-box}
+    .pc svg{width:14px;height:14px}
+    .su-s{color:#282a30}
+    .su-h{color:#d43a3f}
+    .su-d{color:#3b82f6}
+    .su-c{color:#2f9e6e}
+    .pcx{width:48px;height:66px;border-radius:5px;border:1px dashed var(--border);box-sizing:border-box}
+    .chip{position:absolute;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:9999px;background:var(--popover);border:1px solid var(--border);font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
+    .chip::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--primary)}
+    .shead{display:flex;align-items:center;gap:8px;padding:12px 12px 4px;font-size:11px;color:var(--muted-foreground);letter-spacing:0.06em}
+    .arow{display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;font-size:12px;box-sizing:border-box}
+    .arow .who{font-family:var(--font-mono);font-weight:500;width:104px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .arow .amt{font-family:var(--font-mono);margin-left:auto;font-variant-numeric:tabular-nums}
+    .arow.done{color:var(--muted-foreground)}
+    .arow.now{background:rgba(69,147,248,0.12);border-radius:6px}
+  </style>
+</helmet>
+<div style="width:1280px;height:800px;display:flex;overflow:hidden;background:var(--background)">
+  <div class="side">
+    <div class="brand">Poker Arena<span class="bdg bdg-outline">仮称</span></div>
+    <div class="slabel">対戦</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="M7 4h10v6a5 5 0 0 1-10 0z"></path><path d="M7 6H4a2 2 0 0 0 2 4"></path><path d="M17 6h3a2 2 0 0 1-2 4"></path></svg>リーダーボード</div>
+    <div class="nav on"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"></path></svg>ライブテーブル</div>
+    <div class="slabel">開発</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="14" height="10" rx="2"></rect><path d="M12 9V6"></path><circle cx="12" cy="4.5" r="1.5"></circle><path d="M9.5 13.5h.01"></path><path d="M14.5 13.5h.01"></path><path d="M9.5 16.5h5"></path></svg>マイbot</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"></path><path d="M3.5 11a8.5 8.5 0 1 1 .6 4.2"></path><path d="M3 5.5V11h5.5"></path></svg>ハンドリプレイヤー</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0 0 4h13"></path></svg>ドキュメント</div>
+    <div style="flex:1"></div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="2"></circle><path d="M4 6h2"></path><path d="M10 6h10"></path><circle cx="16" cy="12" r="2"></circle><path d="M4 12h10"></path><path d="M18 12h2"></path><circle cx="10" cy="18" r="2"></circle><path d="M4 18h4"></path><path d="M12 18h8"></path></svg>設定</div>
+    <div class="nav"><span class="avt">hi</span><span class="mono" style="font-size:12px">hi089697</span></div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="top">
+      <h1>ライブテーブル</h1>
+      <div class="btn btn-sec mono" style="font-size:12px">T-0421<svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></div>
+      <span style="font-size:11px;color:var(--muted-foreground)"><span class="mono">21</span> テーブル稼働中</span>
+      <div style="flex:1"></div>
+      <span style="display:flex;align-items:center;gap:6px;color:var(--muted-foreground);font-size:11px"><svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"></circle><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path><path d="M16 3.1a4 4 0 0 1 0 7.8"></path><path d="M21 21v-2a4 4 0 0 0-3-3.9"></path></svg>観戦 <span class="mono">21</span></span>
+      <span class="bdg bdg-outline mono">h_01J8QXKD</span>
+    </div>
+    <div style="flex:1;position:relative">
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:720px;height:680px">
+        <div style="position:absolute;left:20px;top:64px;width:680px;height:520px;background:var(--muted);border:1px solid var(--border);border-radius:260px;overflow:hidden">
+          <svg viewBox="0 0 24 24" fill="#1b1e21" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:300px;height:300px"><path d="M12 2.5C9.5 6.5 4.5 9 4.5 13a3.8 3.8 0 0 0 6.3 2.9c-.2 1.9-.9 3.4-1.8 4.6h6c-.9-1.2-1.6-2.7-1.8-4.6a3.8 3.8 0 0 0 6.3-2.9c0-4-5-6.5-7.5-10.5z"></path></svg>
+        </div>
+        <div style="position:absolute;left:0;right:0;top:272px;display:flex;flex-direction:column;align-items:center;gap:12px">
+          <span style="font-size:12px;color:var(--muted-foreground)">ポット <span class="mono" style="font-size:17px;color:var(--foreground);font-weight:600">9.0bb</span></span>
+          <div style="display:flex;gap:8px">
+            <div class="pc su-h"><span>7</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5C6.5 16 3 12.7 3 8.9 3 6.2 5.2 4 7.9 4c1.7 0 3.2.8 4.1 2.1C12.9 4.8 14.4 4 16.1 4 18.8 4 21 6.2 21 8.9c0 3.8-3.5 7.1-9 11.6z"></path></svg></div>
+            <div class="pc su-c"><span>2</span><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6.5" r="3.4"></circle><circle cx="7" cy="12.5" r="3.4"></circle><circle cx="17" cy="12.5" r="3.4"></circle><path d="M10.5 13.5h3L14.5 21h-5z"></path></svg></div>
+            <div class="pc su-d"><span>J</span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5L19 12l-7 9.5L5 12z"></path></svg></div>
+            <div class="pcx"></div>
+            <div class="pcx"></div>
+          </div>
+        </div>
+        <div class="seat" style="left:110px;top:8px">
+          <span class="nm"><span class="avt">gn</span>gto-nemesis</span>
+          <span class="st"><span class="stack">97.5bb</span><span class="pos">UTG</span></span>
+        </div>
+        <div class="seat fold" style="left:438px;top:8px">
+          <span class="nm"><span class="avt">ps</span>pyshark</span>
+          <span class="st"><span class="stack">100.0bb</span><span class="pos">HJ</span></span>
+        </div>
+        <div class="seat" style="left:548px;top:306px">
+          <span class="nm"><span class="avt">sc</span>stone-cold</span>
+          <span class="st"><span class="stack">94.5bb</span><span class="pos">CO</span></span>
+        </div>
+        <div class="seat act" style="left:438px;top:604px;padding-bottom:14px">
+          <span class="nm"><span class="avt">rr</span>river-raptor</span>
+          <span class="st"><span class="stack">97.5bb</span><span class="pos">BTN</span></span>
+          <div class="tbar"><span></span></div>
+        </div>
+        <div class="seat fold" style="left:110px;top:604px">
+          <span class="nm"><span class="avt">bf</span>blufffish</span>
+          <span class="st"><span class="stack">99.5bb</span><span class="pos">SB</span></span>
+        </div>
+        <div class="seat fold" style="left:0px;top:306px">
+          <span class="nm"><span class="avt">lc</span>loose-cannon</span>
+          <span class="st"><span class="stack">99.0bb</span><span class="pos">BB</span></span>
+        </div>
+        <div style="position:absolute;left:166px;top:92px;display:flex;gap:3px"><span class="cb"></span><span class="cb"></span></div>
+        <div style="position:absolute;left:506px;top:344px;display:flex;gap:3px"><span class="cb"></span><span class="cb"></span></div>
+        <div style="position:absolute;left:494px;top:562px;display:flex;gap:3px"><span class="cb"></span><span class="cb"></span></div>
+        <div class="chip" style="left:434px;top:346px">3.0</div>
+        <div style="position:absolute;left:414px;top:574px;width:20px;height:20px;border-radius:50%;background:#f7f8f8;color:#08090a;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;font-weight:600">D</div>
+      </div>
+    </div>
+  </div>
+  <div style="width:300px;flex:none;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">
+    <div class="top" style="padding:0 12px"><span style="font-size:13px;font-weight:600">アクション履歴</span><div style="flex:1"></div><span style="font-size:11px;color:var(--muted-foreground)">金額は bb</span></div>
+    <div style="flex:1;overflow:hidden;padding:0 4px 8px;display:flex;flex-direction:column">
+      <div class="shead">プリフロップ</div>
+      <div class="arow done"><span class="who">gto-nemesis</span><span>raise</span><span class="amt">2.5</span></div>
+      <div class="arow done"><span class="who">pyshark</span><span>fold</span></div>
+      <div class="arow done"><span class="who">stone-cold</span><span>call</span><span class="amt">2.5</span></div>
+      <div class="arow done"><span class="who">river-raptor</span><span>call</span><span class="amt">2.5</span></div>
+      <div class="arow done"><span class="who">blufffish</span><span>fold</span></div>
+      <div class="arow done"><span class="who">loose-cannon</span><span>fold</span></div>
+      <div class="shead">フロップ<span class="mono" style="letter-spacing:0">7h 2c Jd</span></div>
+      <div class="arow done"><span class="who">gto-nemesis</span><span>check</span></div>
+      <div class="arow done"><span class="who">stone-cold</span><span>bet</span><span class="amt">3.0</span></div>
+      <div class="arow now"><span class="who">river-raptor</span><span>考慮中</span><span class="amt" style="display:inline-flex;align-items:center;gap:4px"><svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>1.4s</span></div>
+      <div style="flex:1"></div>
+      <div style="padding:10px 12px;font-size:11px;color:var(--muted-foreground)">ホールカードは非公開。ショーダウンの公開分のみ表示。</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+  <style>
+    :root{
+      --background:#08090a;--foreground:#f7f8f8;--card:#141516;--popover:#1c1d1f;
+      --primary:#4593f8;--secondary:#1f2023;--muted:#17181b;--muted-foreground:#8a8f98;
+      --accent:#1c1e22;--destructive:#f2555a;--success:#4cb782;--warning:#f2994a;--info:#4ea7fc;
+      --border:#26282d;--input:#2e3035;--ring:#5ea1f9;--selection:rgba(69,147,248,0.30);
+      --font-sans:'Noto Sans JP','Inter',-apple-system,'Hiragino Sans',sans-serif;
+      --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',monospace;
+    }
+    body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:13px;letter-spacing:-0.005em;-webkit-font-smoothing:antialiased}
+    a{color:var(--primary)}a:hover{color:var(--ring)}
+    .mono{font-family:var(--font-mono)}
+    .icn{width:16px;height:16px;flex:none}
+    .icn14{width:14px;height:14px;flex:none}
+    .side{width:244px;flex:none;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px 8px;box-sizing:border-box}
+    .brand{display:flex;align-items:center;gap:8px;padding:6px 8px 16px;font-weight:600;font-size:13px;letter-spacing:-0.015em}
+    .slabel{font-size:11px;color:var(--muted-foreground);padding:14px 8px 4px;letter-spacing:0.06em}
+    .nav{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:6px;color:var(--muted-foreground);font-weight:500;font-size:13px}
+    .nav.on{background:var(--accent);color:var(--foreground)}
+    .top{height:48px;flex:none;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;box-sizing:border-box}
+    .top h1{font-size:15px;font-weight:600;letter-spacing:-0.015em;margin:0}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid transparent;white-space:nowrap;box-sizing:border-box}
+    .btn-pri{background:var(--primary);color:#ffffff}
+    .btn-sec{background:var(--card);color:var(--foreground);border-color:var(--input);box-shadow:0 1px 2px rgba(0,0,0,0.35)}
+    .bdg{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:9999px;font-size:11px;font-weight:500;white-space:nowrap}
+    .bdg .dt{width:6px;height:6px;border-radius:50%;background:currentColor}
+    .bdg-success{background:rgba(76,183,130,.15);color:var(--success)}
+    .bdg-neutral{background:var(--muted);color:var(--muted-foreground)}
+    .bdg-destructive{background:rgba(235,87,87,.15);color:var(--destructive)}
+    .bdg-outline{background:transparent;border:1px solid var(--border);color:var(--muted-foreground)}
+    .crd{background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.35)}
+    .avt{width:20px;height:20px;border-radius:5px;background:var(--secondary);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;color:var(--muted-foreground);flex:none}
+    .botrow{display:flex;align-items:center;gap:10px;height:52px;padding:0 12px;border-bottom:1px solid var(--border);box-sizing:border-box}
+    .botrow.on{background:var(--accent)}
+    .vrow{display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;border-top:1px solid var(--border);font-size:13px;box-sizing:border-box}
+  </style>
+</helmet>
+<div style="width:1280px;height:800px;display:flex;overflow:hidden;background:var(--background)">
+  <div class="side">
+    <div class="brand">Poker Arena<span class="bdg bdg-outline">仮称</span></div>
+    <div class="slabel">対戦</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="M7 4h10v6a5 5 0 0 1-10 0z"></path><path d="M7 6H4a2 2 0 0 0 2 4"></path><path d="M17 6h3a2 2 0 0 1-2 4"></path></svg>リーダーボード</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"></path></svg>ライブテーブル</div>
+    <div class="slabel">開発</div>
+    <div class="nav on"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="14" height="10" rx="2"></rect><path d="M12 9V6"></path><circle cx="12" cy="4.5" r="1.5"></circle><path d="M9.5 13.5h.01"></path><path d="M14.5 13.5h.01"></path><path d="M9.5 16.5h5"></path></svg>マイbot</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"></path><path d="M3.5 11a8.5 8.5 0 1 1 .6 4.2"></path><path d="M3 5.5V11h5.5"></path></svg>ハンドリプレイヤー</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0 0 4h13"></path></svg>ドキュメント</div>
+    <div style="flex:1"></div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="2"></circle><path d="M4 6h2"></path><path d="M10 6h10"></path><circle cx="16" cy="12" r="2"></circle><path d="M4 12h10"></path><path d="M18 12h2"></path><circle cx="10" cy="18" r="2"></circle><path d="M4 18h4"></path><path d="M12 18h8"></path></svg>設定</div>
+    <div class="nav"><span class="avt">hi</span><span class="mono" style="font-size:12px">hi089697</span></div>
+  </div>
+  <div style="width:340px;flex:none;border-right:1px solid var(--border);display:flex;flex-direction:column">
+    <div class="top">
+      <h1>マイbot</h1>
+      <div style="flex:1"></div>
+      <div class="btn btn-pri"><svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>新しいbot</div>
+    </div>
+    <div class="botrow on">
+      <span class="avt">rr</span>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+        <span style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-weight:500">river-raptor</span><span class="mono" style="font-size:11px;color:var(--muted-foreground)">v12</span></span>
+        <span class="bdg bdg-success" style="align-self:flex-start"><span class="dt"></span>稼働中</span>
+      </div>
+      <span class="mono" style="color:var(--success);font-variant-numeric:tabular-nums">+8.2</span>
+    </div>
+    <div class="botrow">
+      <span class="avt">gl</span>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+        <span style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-weight:500">gto-lite</span><span class="mono" style="font-size:11px;color:var(--muted-foreground)">v4</span></span>
+        <span class="bdg bdg-destructive" style="align-self:flex-start"><span class="dt"></span>エラー</span>
+      </div>
+      <span class="mono" style="color:var(--destructive);font-variant-numeric:tabular-nums">-1.4</span>
+    </div>
+    <div class="botrow">
+      <span class="avt">cd</span>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+        <span style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-weight:500">calldown</span><span class="mono" style="font-size:11px;color:var(--muted-foreground)">v1</span></span>
+        <span class="bdg bdg-neutral" style="align-self:flex-start"><span class="dt"></span>停止中</span>
+      </div>
+      <span class="mono" style="color:var(--muted-foreground);font-variant-numeric:tabular-nums">—</span>
+    </div>
+    <div style="flex:1"></div>
+    <div style="padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted-foreground)"><span class="mono">3 / 3</span> bot を使用中</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="top">
+      <span class="mono" style="font-size:15px;font-weight:600">river-raptor</span>
+      <span class="bdg bdg-success"><span class="dt"></span>稼働中</span>
+      <div style="flex:1"></div>
+      <div class="btn btn-sec"><svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"></circle><path d="M10.9 12.1L19 4"></path><path d="M17.5 5.5l2 2"></path><path d="M14.5 8.5l2 2"></path></svg>APIキー</div>
+      <div class="btn btn-pri"><svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path><path d="M7 9l5-5 5 5"></path><path d="M12 4v12"></path></svg>新バージョンをデプロイ</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 20px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted-foreground);box-sizing:border-box">
+      <span>Python アップロード型</span><span>·</span><span class="mono">v12</span><span>·</span><span>登録 <span class="mono">2026-07-02</span></span><span>·</span><span>最終デプロイ <span class="mono">2026-08-18</span></span>
+    </div>
+    <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:16px;overflow:hidden;box-sizing:border-box">
+      <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:12px">
+        <div class="crd" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:11px;color:var(--muted-foreground)">bb/100</span>
+          <span class="mono" style="font-size:21px;font-weight:600;color:var(--success)">+8.2</span>
+          <span class="mono" style="font-size:11px;color:var(--muted-foreground)">95% CI ±1.9</span>
+        </div>
+        <div class="crd" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:11px;color:var(--muted-foreground)">ハンド数</span>
+          <span class="mono" style="font-size:21px;font-weight:600">52,410</span>
+          <span style="font-size:11px;color:var(--muted-foreground)"><span class="mono">v12</span> のみ</span>
+        </div>
+        <div class="crd" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:11px;color:var(--muted-foreground)">順位</span>
+          <span class="mono" style="font-size:21px;font-weight:600">#1</span>
+          <span style="font-size:11px;color:var(--muted-foreground)"><span class="mono">128</span> bot 中</span>
+        </div>
+      </div>
+      <div class="crd" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;font-weight:600;letter-spacing:-0.015em">bb/100 推移</span>
+          <div style="flex:1"></div>
+          <span style="font-size:11px;color:var(--muted-foreground)">直近 <span class="mono">30</span>日 · 累計</span>
+        </div>
+        <svg viewBox="0 0 640 130" style="width:100%;height:130px;display:block">
+          <line x1="0" y1="10" x2="640" y2="10" stroke="#26282d" stroke-width="1"></line>
+          <line x1="0" y1="50" x2="640" y2="50" stroke="#26282d" stroke-width="1"></line>
+          <line x1="0" y1="90" x2="640" y2="90" stroke="#26282d" stroke-width="1" stroke-dasharray="3 4"></line>
+          <text x="4" y="86" font-size="10" fill="#8a8f98" font-family="JetBrains Mono, monospace">0</text>
+          <polyline points="0,104 46,96 92,101 138,88 184,79 230,84 276,68 322,72 368,58 414,63 460,48 506,44 552,33 598,37 640,26" fill="none" stroke="#4593f8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>
+          <circle cx="640" cy="26" r="3" fill="#4593f8"></circle>
+        </svg>
+      </div>
+      <div class="crd" style="display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:8px;padding:14px 14px 10px">
+          <span style="font-size:13px;font-weight:600;letter-spacing:-0.015em">バージョン履歴</span>
+        </div>
+        <div class="vrow">
+          <span class="mono" style="font-weight:500;width:36px">v12</span>
+          <span class="bdg bdg-success"><span class="dt"></span>稼働中</span>
+          <span style="color:var(--muted-foreground)">デプロイ <span class="mono">2026-08-18</span></span>
+          <div style="flex:1"></div>
+          <span class="mono" style="color:var(--muted-foreground)">52,410ハンド</span>
+          <span class="mono" style="color:var(--success);width:48px;text-align:right">+8.2</span>
+        </div>
+        <div class="vrow">
+          <span class="mono" style="font-weight:500;width:36px">v11</span>
+          <span class="bdg bdg-neutral"><span class="dt"></span>停止</span>
+          <span style="color:var(--muted-foreground)">デプロイ <span class="mono">2026-08-02</span></span>
+          <div style="flex:1"></div>
+          <span class="mono" style="color:var(--muted-foreground)">88,120ハンド</span>
+          <span class="mono" style="color:var(--success);width:48px;text-align:right">+4.6</span>
+        </div>
+        <div class="vrow">
+          <span class="mono" style="font-weight:500;width:36px">v10</span>
+          <span class="bdg bdg-destructive"><span class="dt"></span>エラー</span>
+          <span style="color:var(--muted-foreground)">タイムアウト連続で自動離席 · <span class="mono">2026-07-25</span></span>
+          <div style="flex:1"></div>
+          <span class="mono" style="color:var(--muted-foreground)">6,204ハンド</span>
+          <span class="mono" style="color:var(--destructive);width:48px;text-align:right">-2.1</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

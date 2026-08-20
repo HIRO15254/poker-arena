@@ -1,0 +1,12 @@
+:root{
+--font-sans:'Noto Sans JP','Inter',-apple-system,'Hiragino Sans','Segoe UI',sans-serif;
+--font-mono:'JetBrains Mono',ui-monospace,'SF Mono',monospace;
+--text-xs:0.6875rem;--text-sm:0.8125rem;--text-base:0.9375rem;--text-lg:1.0625rem;--text-xl:1.3125rem;--text-2xl:1.625rem;--text-3xl:2rem;
+--weight-regular:400;--weight-medium:500;--weight-semibold:600;--weight-bold:700;
+--leading-tight:1.25;--leading-normal:1.5;--leading-relaxed:1.65;
+--tracking-heading:-0.015em;--tracking-body:-0.005em;--tracking-caps:0.06em;
+/* Mobile type scale — iOS HIG-derived; use inside mobile surfaces instead of the desktop scale */
+--m-text-caption:0.75rem;--m-text-footnote:0.8125rem;--m-text-secondary:0.9375rem;--m-text-body:1.0625rem;--m-text-title:1.0625rem;--m-text-title-lg:1.375rem;--m-text-large-title:2.125rem;
+--m-leading-body:1.3;
+--m-text-tab:0.625rem;
+}
