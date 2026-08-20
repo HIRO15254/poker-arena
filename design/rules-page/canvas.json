@@ -1,0 +1,9 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "ルール", "x": 0, "y": 0, "w": 1280, "h": 940 }
+  ],
+  "annotations": [
+    { "id": "brief", "x": 0, "y": -150, "w": 520, "text": "ルールページ(新規画面)。実装済みの Cryst シェルにそのまま載る前提。\n表示する値はすべて GET /api/season の実データから描画するので、設定を変えたらページも自動で追従する。\nサイドバーには「対戦」グループの4つめとして追加。" }
+  ],
+  "launch": { "view": "focused", "file": "Main.dc.html" }
+}

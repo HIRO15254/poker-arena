@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+  <style>
+    :root{
+      --background:#08090a;--foreground:#f7f8f8;--card:#141516;--popover:#1c1d1f;
+      --primary:#4593f8;--secondary:#1f2023;--muted:#17181b;--muted-foreground:#8a8f98;
+      --accent:#1c1e22;--destructive:#f2555a;--success:#4cb782;--warning:#f2994a;
+      --border:#26282d;--input:#2e3035;--selection:rgba(69,147,248,0.30);
+      --font-sans:'Noto Sans JP','Inter',-apple-system,'Hiragino Sans',sans-serif;
+      --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',monospace;
+    }
+    body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-sans);font-size:13px;letter-spacing:-0.005em;-webkit-font-smoothing:antialiased}
+    a{color:var(--primary);text-decoration:none}a:hover{color:#5ea1f9}
+    .mono{font-family:var(--font-mono)}
+    .icn{width:16px;height:16px;flex:none}
+    .icn14{width:14px;height:14px;flex:none}
+    .side{width:244px;flex:none;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px 8px;box-sizing:border-box}
+    .brand{display:flex;align-items:center;gap:8px;padding:6px 8px 16px;font-weight:600;letter-spacing:-0.015em}
+    .slabel{font-size:11px;color:var(--muted-foreground);padding:14px 8px 4px;letter-spacing:0.06em}
+    .nav{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:6px;color:var(--muted-foreground);font-weight:500}
+    .nav.on{background:var(--accent);color:var(--foreground)}
+    .top{height:48px;flex:none;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box}
+    .top h1{font-size:15px;font-weight:600;letter-spacing:-0.015em;margin:0}
+    .bdg{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:9999px;font-size:11px;font-weight:500;white-space:nowrap}
+    .bdg .dt{width:6px;height:6px;border-radius:50%;background:currentColor}
+    .bdg-outline{background:transparent;border:1px solid var(--border);color:var(--muted-foreground)}
+    .bdg-success{background:rgba(76,183,130,.15);color:var(--success)}
+    .bdg-warning{background:rgba(242,153,74,.15);color:var(--warning)}
+    .bdg-primary{background:var(--selection);color:var(--primary)}
+    .avt{width:20px;height:20px;border-radius:5px;background:var(--secondary);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;color:var(--muted-foreground);flex:none}
+    .crd{background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.35);display:flex;flex-direction:column}
+    .crd-h{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--border)}
+    .crd-h h2{margin:0;font-size:13px;font-weight:600;letter-spacing:-0.015em}
+    .crd-h .n{font-family:var(--font-mono);font-size:11px;color:var(--primary)}
+    .row{display:flex;align-items:baseline;gap:12px;padding:9px 16px;border-bottom:1px solid var(--border)}
+    .row:last-child{border-bottom:none}
+    .row .k{width:112px;flex:none;font-size:12px;color:var(--muted-foreground)}
+    .row .v{font-size:13px;flex:1}
+    .row .v .mono{font-size:13px}
+    .note{padding:10px 16px;font-size:11px;color:var(--muted-foreground);line-height:1.6;border-top:1px solid var(--border)}
+    .hero{display:flex;align-items:flex-end;gap:16px;padding:20px;border-bottom:1px solid var(--border)}
+    .hero .t{font-size:26px;font-weight:700;letter-spacing:-0.015em;line-height:1.2}
+    .chips{display:flex;gap:6px;flex-wrap:wrap}
+    .lnk{display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);font-size:13px}
+    .lnk:last-child{border-bottom:none}
+    .lnk .d{color:var(--muted-foreground);font-size:11px;margin-left:auto}
+    .st{display:inline-flex;align-items:center;gap:6px}
+  </style>
+</helmet>
+<div style="width:1280px;height:940px;display:flex;overflow:hidden;background:var(--background)">
+  <div class="side">
+    <div class="brand">Poker Arena<span class="bdg bdg-outline">仮称</span></div>
+    <div class="slabel">対戦</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="M7 4h10v6a5 5 0 0 1-10 0z"></path><path d="M7 6H4a2 2 0 0 0 2 4"></path><path d="M17 6h3a2 2 0 0 1-2 4"></path></svg>リーダーボード</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="13" height="16" rx="2"></rect><path d="M8 3h11a2 2 0 0 1 2 2v13"></path></svg>プレイ</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"></path></svg>ライブテーブル</div>
+    <div class="nav on"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0 0 4h13"></path></svg>ルール</div>
+    <div class="slabel">開発</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="14" height="10" rx="2"></rect><path d="M12 9V6"></path><circle cx="12" cy="4.5" r="1.5"></circle><path d="M9.5 13.5h.01"></path><path d="M14.5 13.5h.01"></path><path d="M9.5 16.5h5"></path></svg>マイbot</div>
+    <div class="nav"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"></path><path d="M3.5 11a8.5 8.5 0 1 1 .6 4.2"></path><path d="M3 5.5V11h5.5"></path></svg>ハンドリプレイヤー</div>
+    <div style="flex:1"></div>
+    <div class="nav"><span class="avt">hi</span><span class="mono" style="font-size:12px">hiro15254</span></div>
+  </div>
+
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="top">
+      <h1>ルール</h1>
+      <div style="flex:1"></div>
+      <span style="font-size:11px;color:var(--muted-foreground)">この内容は稼働中の設定をそのまま表示しています</span>
+    </div>
+
+    <div class="hero">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span class="mono" style="font-size:11px;color:var(--primary);letter-spacing:0.06em">SEASON 1</span>
+        <span class="t">ヘッズアップ ノーリミット・ホールデム</span>
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <span class="bdg bdg-success"><span class="dt"></span>開催中</span>
+        <span class="mono" style="font-size:12px;color:var(--muted-foreground)">2026-08-01 → 2026-09-01</span>
+      </div>
+    </div>
+
+    <div style="flex:1;padding:20px;display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:16px;align-content:start;overflow:hidden;box-sizing:border-box">
+
+      <div class="crd">
+        <div class="crd-h"><span class="n">01</span><h2>ゲーム</h2></div>
+        <div class="row"><span class="k">テーブル</span><span class="v">ヘッズアップ(<span class="mono">2</span>人)</span></div>
+        <div class="row"><span class="k">スタック</span><span class="v"><span class="mono">100bb</span> — 毎ハンド開始時にリセット</span></div>
+        <div class="row"><span class="k">ブラインド</span><span class="v"><span class="mono">SB 0.5bb</span> / <span class="mono">BB 1bb</span></span></div>
+        <div class="row"><span class="k">ポジション</span><span class="v">ボタン = SB。プリフロップ先行・ポストフロップ後手</span></div>
+        <div class="row"><span class="k">レーキ</span><span class="v">ポットの <span class="mono">5%</span>、上限 <span class="mono">0.6bb</span>、no flop no drop</span></div>
+        <div class="note">スタックを毎ハンド戻すので、深さの影響を受けず bb/100 がそのまま比較できます。</div>
+      </div>
+
+      <div class="crd">
+        <div class="crd-h"><span class="n">02</span><h2>ランキング</h2></div>
+        <div class="row"><span class="k">指標</span><span class="v"><span class="mono">bb/100</span>(レーキ控除後)</span></div>
+        <div class="row"><span class="k">掲載条件</span><span class="v">現行バージョンで <span class="mono">2,000</span> ハンド以上</span></div>
+        <div class="row"><span class="k">併記</span><span class="v">ハンド数と <span class="mono">95%</span> 信頼区間</span></div>
+        <div class="row"><span class="k">対戦の組み方</span><span class="v">稼働中の bot を総当たり。ボタンは毎ハンド交代</span></div>
+        <div class="row"><span class="k">再デプロイ</span><span class="v"><span class="bdg bdg-warning">成績リセット</span></span></div>
+        <div class="note">ハンド数が少ないうちは信頼区間が広く出ます。順位は区間を見てから判断してください。</div>
+      </div>
+
+      <div class="crd">
+        <div class="crd-h"><span class="n">03</span><h2>持ち時間</h2></div>
+        <div class="row"><span class="k">基本</span><span class="v">1アクション <span class="mono">5秒</span></span></div>
+        <div class="row"><span class="k">タイムバンク</span><span class="v">初期 <span class="mono">1秒</span> / ハンドごと <span class="mono">+0.5秒</span> / 上限 <span class="mono">10秒</span></span></div>
+        <div class="row"><span class="k">消費</span><span class="v">基本時間を超えた分だけ減る</span></div>
+        <div class="row"><span class="k">超過時</span><span class="v">check できれば check、できなければ fold</span></div>
+        <div class="row"><span class="k">自動離席</span><span class="v">連続 <span class="mono">20</span> 回の失敗で停止</span></div>
+        <div class="note">5秒以内に返している限りバンクは減りません。満タンなら1アクションに最大 15 秒使えます。</div>
+      </div>
+
+      <div class="crd">
+        <div class="crd-h"><span class="n">04</span><h2>bot の種類</h2></div>
+        <div class="row">
+          <span class="k">組み込み戦略</span>
+          <span class="v"><span class="chips">
+            <span class="bdg bdg-primary mono">tight</span><span class="bdg bdg-primary mono">balanced</span><span class="bdg bdg-primary mono">lag</span>
+            <span class="bdg bdg-outline mono">aggro</span><span class="bdg bdg-outline mono">random</span><span class="bdg bdg-outline mono">call</span><span class="bdg bdg-outline mono">fold</span>
+          </span></span>
+        </div>
+        <div class="row"><span class="k">webhook</span><span class="v"><span class="st"><span class="bdg bdg-outline"><span class="dt"></span>停止中</span></span></span></div>
+        <div class="row"><span class="k">上限</span><span class="v">1ユーザー <span class="mono">3</span> 体まで</span></div>
+        <div class="note">webhook 型(自前サーバーで応答する bot)は現在受け付けていません。アリーナは外部への通信を行いません。</div>
+      </div>
+
+      <div class="crd">
+        <div class="crd-h"><span class="n">05</span><h2>公平性</h2></div>
+        <div class="row"><span class="k">同卓</span><span class="v">同一ユーザーの bot 同士は当たりません</span></div>
+        <div class="row"><span class="k">シャッフル</span><span class="v">毎ハンド暗号論的乱数で生成。予測できません</span></div>
+        <div class="row"><span class="k">ハンド履歴</span><span class="v">自分視点のみ。相手のカードはショーダウン公開分だけ</span></div>
+        <div class="row"><span class="k">他者に見える情報</span><span class="v">bot 名・所有者・<span class="mono">bb/100</span>・ハンド数</span></div>
+      </div>
+
+      <div class="crd">
+        <div class="crd-h"><span class="n">06</span><h2>bot を作る</h2></div>
+        <a class="lnk" href="#"><svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V6a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0 0 4h13"></path></svg>bot 開発ガイド<span class="d">はじめての1体</span></a>
+        <a class="lnk" href="#"><svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6l-5 6 5 6"></path><path d="M16 6l5 6-5 6"></path></svg>API リファレンス<span class="d">ハンド履歴の取得</span></a>
+        <a class="lnk" href="#"><svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"></path><path d="M7 11l5 5 5-5"></path><path d="M4 21h16"></path></svg>Python SDK<span class="d">ハンド評価器つき</span></a>
+        <a class="lnk" href="#"><svg class="icn14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9h10"></path><path d="M7 13h6"></path></svg>プロトコル仕様<span class="d">JSON Schema</span></a>
+        <div class="note">AI エージェント向けの索引は <span class="mono">llms.txt</span> にまとまっています。</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1280,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

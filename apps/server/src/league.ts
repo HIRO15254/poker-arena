@@ -13,6 +13,17 @@ import { secureDeck, secureSeed } from "./shuffle.js";
 
 /** 保存するハンド履歴の上限。超過分は古い順に削除 */
 const HAND_RETENTION = 20000;
+/**
+ * 1 tick・1ペアあたりのハンド数。
+ * cron は毎分回るので、ここを上げると D1 の書き込みが一気に増える。
+ * 8 bot(28ペア)× 12 ハンド ≒ 34万ハンド/日 で、1体あたり 1日 12万ハンド。
+ * bb/100 の 95% 信頼区間は 1日で ±6 程度まで縮むので、これで十分。
+ */
+const HANDS_PER_PAIR = 12;
+/** webhook bot は往復があるので更に絞る */
+const HANDS_PER_PAIR_WEBHOOK = 6;
+/** bb/100 推移のスナップショットを取る間隔(tick 単位)。毎 tick 取ると行が無駄に増える */
+const TIMELINE_EVERY_N_TICKS = 10;
 /** bb/100 推移の保持点数(bot・バージョンごと)。API が返す上限と揃える */
 const TIMELINE_RETENTION = 200;
 
@@ -190,6 +201,8 @@ export async function runLeagueBatch(
   >();
   const failures = new Map<string, WebhookOutcome>();
   const banks = new Map<string, TimeBank>();
+  /** DB に入っていた元の残高。変化した bot だけ書き戻すため */
+  const bankBaseline = new Map<string, number>();
 
   // 総当たりのペアを作り、tick ごとに開始位置をずらして偏りを防ぐ
   const pairs: [BotRow, BotRow][] = [];
@@ -210,7 +223,7 @@ export async function runLeagueBatch(
     for (const [a, b] of ordered) {
       if (Date.now() - started > budgetMs) break;
       const hasWebhook = a.kind === "webhook" || b.kind === "webhook";
-      const handsThisPair = hasWebhook ? 12 : 120;
+      const handsThisPair = hasWebhook ? HANDS_PER_PAIR_WEBHOOK : HANDS_PER_PAIR;
       const tableId = pairKey(a.id, b.id);
       const existing = await env.DB.prepare(
         "SELECT hand_number FROM tables WHERE id = ?",
@@ -234,6 +247,8 @@ export async function runLeagueBatch(
       const bankB: TimeBank = banks.get(b.id) ?? { ms: b.time_bank_ms };
       banks.set(a.id, bankA);
       banks.set(b.id, bankB);
+      if (!bankBaseline.has(a.id)) bankBaseline.set(a.id, a.time_bank_ms);
+      if (!bankBaseline.has(b.id)) bankBaseline.set(b.id, b.time_bank_ms);
 
       for (let h = 0; h < handsThisPair; h++) {
         if (Date.now() - started > budgetMs) break;
@@ -312,7 +327,7 @@ export async function runLeagueBatch(
     report.error = err instanceof Error ? err.message : String(err);
   }
 
-  await persist(env, season, deltas, handRows, tableUpdates, failures, banks, report);
+  await persist(env, season, deltas, handRows, tableUpdates, failures, banks, bankBaseline, report);
   report.elapsedMs = Date.now() - started;
   return report;
 }
@@ -335,6 +350,7 @@ async function persist(
   >,
   failures: Map<string, WebhookOutcome>,
   banks: Map<string, TimeBank>,
+  bankBaseline: Map<string, number>,
   report: BatchReport,
 ): Promise<void> {
   const at = nowIso();
@@ -471,18 +487,19 @@ async function persist(
     }
   }
 
-  // タイムバンクの残高を保存する(次の tick に持ち越す)
+  // タイムバンクの残高を保存する(次の tick に持ち越す)。
+  // 組み込み bot は消費も回復もしないので、変化したものだけ書く。
   for (const [botId, bank] of banks) {
+    const next = Math.max(0, Math.round(bank.ms));
+    if (next === bankBaseline.get(botId)) continue;
     stmts.push(
-      env.DB.prepare("UPDATE bots SET time_bank_ms = ? WHERE id = ?").bind(
-        Math.max(0, Math.round(bank.ms)),
-        botId,
-      ),
+      env.DB.prepare("UPDATE bots SET time_bank_ms = ? WHERE id = ?").bind(next, botId),
     );
   }
 
-  // bb/100 推移のスナップショット
-  for (const botId of deltas.keys()) {
+  // bb/100 推移のスナップショット(毎 tick は取らない)
+  const snapshotTick = Math.floor(Date.now() / 60000) % TIMELINE_EVERY_N_TICKS === 0;
+  for (const botId of snapshotTick ? deltas.keys() : []) {
     stmts.push(
       env.DB.prepare(
         `INSERT INTO stat_timeline (season_id, bot_id, version, hands, bb100, at)
