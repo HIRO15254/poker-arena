@@ -33,6 +33,13 @@ app.use("/api/*", cors());
 const fail = (status: 400 | 401 | 403 | 404 | 429 | 409, error: string, message: string) =>
   Response.json({ error, message }, { status });
 
+/**
+ * リーグ(cron による自動対戦)を回すか。
+ * false の間もサイトは通常どおり動く — リーダーボードの閲覧、人間 vs bot のプレイ、
+ * API はすべて生きていて、止まるのは新しいハンドが積まれることだけ。
+ */
+const LEAGUE_ENABLED = false;
+
 const WEBHOOK_DISABLED_MESSAGE =
   "現在 webhook 型 bot は受け付けていません。組み込み戦略 (kind: \"builtin\") で登録してください";
 
@@ -687,6 +694,9 @@ export default {
     return app.fetch(request, env, ctx);
   },
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    // リーグの一時停止スイッチ。cron トリガー自体も外してあるが、
+    // 反映の遅れや取り消し漏れでも確実に止まるよう、ここでも止める。
+    if (!LEAGUE_ENABLED) return;
     ctx.waitUntil(
       (async () => {
         await ensureBuiltins(env);

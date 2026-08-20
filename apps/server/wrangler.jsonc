@@ -19,6 +19,9 @@
     }
   ],
   "routes": [{ "pattern": "vcode-poker-arena.hiro15254.com", "custom_domain": true }],
-  "triggers": { "crons": ["* * * * *"] },
+  // リーグを一時停止中。再開するときはこの行のコメントを外して deploy する。
+  // 止めている間も、人間 vs bot のプレイ・リーダーボード閲覧・API は通常どおり動く。
+  // "triggers": { "crons": ["* * * * *"] },
+  "triggers": { "crons": [] },
   "observability": { "enabled": true }
 }
