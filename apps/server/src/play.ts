@@ -164,11 +164,12 @@ export async function buildSession(row: PlayRow, season: SeasonConfig): Promise<
   const heroActions = JSON.parse(row.hero_actions) as ActResponse[];
   const button = buttonForHand(row.hand_number);
   const startingStack = season.startingStackBb * CHIPS_PER_BB;
+  const label = row.opponent_name ?? row.opponent;
   const outcome = await runHand(season, row.seed, row.hand_number, row.opponent, heroActions);
 
   const base = {
     id: row.id,
-    opponentName: row.opponent,
+    opponentName: label,
     handNumber: row.hand_number,
     button,
     heroSeat: HERO_SEAT,
@@ -185,7 +186,7 @@ export async function buildSession(row: PlayRow, season: SeasonConfig): Promise<
       street: req.street,
       board: req.board,
       pot: req.pot,
-      seats: seatsFromRequest(req, button, row.opponent),
+      seats: seatsFromRequest(req, button, label),
       actions: req.actions,
       legalActions: req.legal_actions,
       toAct: HERO_SEAT,
@@ -206,7 +207,7 @@ export async function buildSession(row: PlayRow, season: SeasonConfig): Promise<
     street: streetFromBoard(result.board),
     board: result.board,
     pot: result.totalPot,
-    seats: seatsFromResult(result, button, row.opponent, startingStack, revealed),
+    seats: seatsFromResult(result, button, label, startingStack, revealed),
     actions: actionsOf(result),
     legalActions: [],
     toAct: null,

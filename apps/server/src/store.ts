@@ -61,6 +61,7 @@ export interface HandRow {
 export interface PlayRow {
   id: string;
   opponent: string;
+  opponent_name: string | null;
   seed: number;
   hand_number: number;
   hero_actions: string;

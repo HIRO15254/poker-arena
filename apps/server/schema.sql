@@ -100,7 +100,8 @@ CREATE TABLE IF NOT EXISTS tables (
 -- 人間 vs bot のプレイセッション(デッキシード + hero のアクション列から決定的に再構築)
 CREATE TABLE IF NOT EXISTS play_sessions (
   id            TEXT PRIMARY KEY,
-  opponent      TEXT NOT NULL,
+  opponent      TEXT NOT NULL,          -- 組み込み戦略名(決定的再生に使う)
+  opponent_name TEXT,                    -- 表示名(登録 bot を指定した場合はその bot 名)
   seed          INTEGER NOT NULL,
   hand_number   INTEGER NOT NULL DEFAULT 1,
   hero_actions  TEXT NOT NULL DEFAULT '[]',

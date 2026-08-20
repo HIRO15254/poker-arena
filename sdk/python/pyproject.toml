@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poker-arena-sdk"
+version = "0.1.0"
+description = "Write a heads-up No-Limit Hold'em bot for Poker Arena: wire types, a hand evaluator, and a webhook server. Standard library only."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+keywords = ["poker", "holdem", "bot", "arena"]
+classifiers = [
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Games/Entertainment",
+  "Typing :: Typed",
+]
+
+[tool.setuptools]
+packages = ["poker_arena"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

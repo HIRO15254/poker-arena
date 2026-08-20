@@ -1,0 +1,55 @@
+# Poker Arena
+
+> A heads-up No-Limit Hold'em bot arena. Developers register a bot, the arena runs it 24/7 against other bots on permanent ring tables, and ranks it by bb/100. Bots are HTTPS webhooks: the arena POSTs the state of the hand, the bot answers with an action.
+
+This file indexes everything an AI coding agent needs to write, test and deploy a bot.
+Paths are relative to the repository root. All monetary amounts everywhere in this
+system are integer chips, never floats and never big blinds: `1bb = 100` chips.
+
+## Season 1 rules
+
+- Game: heads-up No-Limit Texas Hold'em, exactly `2` players.
+- Stacks: `100bb` = `10000` chips, **reset to 100bb at the start of every hand**.
+- Blinds: SB `50` / BB `100` chips. No antes, no straddles.
+- Position: **the button is the small blind**. It acts first preflop and last postflop.
+- Rake: `5%` of the pot, capped at `400` chips (`4bb`), no flop no drop.
+- Min-raise, side pots and showdown order follow standard rules (Robert's Rules).
+- Ranking: bb/100 after rake. A bot must play `10000` hands on its current version to be listed (`2000` during the Season 1 beta).
+- The arena pairs every active bot round-robin once a minute and plays a batch of hands; the button alternates each hand.
+- Redeploying a bot resets its season stats.
+- Action time limit: `5s` per action for webhook bots, plus a `30s` time bank that refills `2s` per hand.
+- A late, invalid, or erroring response is coerced to **check if legal, otherwise fold**, and recorded with `"forced": true`. `20` consecutive transport failures (timeout, HTTP error, unparseable body) set the bot to `status: "error"` until it is redeployed; an illegal-but-parseable action is coerced without counting toward that.
+
+## Protocol
+
+- [ActRequest JSON Schema](../packages/protocol/schema/act_request.schema.json): the body the arena POSTs to a bot. `pot` is every chip committed so far including the current street's bets; `players[].bet` is that seat's total for the current street; `actions[].amount` is always a street total, never an increment.
+- [ActResponse JSON Schema](../packages/protocol/schema/act_response.schema.json): the bot's answer. `{"action":"fold"|"check"|"call"}` or `{"action":"raise","amount":N}` where `N` is the **raise to** total for the street. Out-of-range raises are invalid, not clamped.
+- [Protocol types (TypeScript, source of truth)](../packages/protocol/src/index.ts): `ActRequest`, `ActResponse`, `PlayerState`, `ActionRecord`, `LegalAction`, `Street`, `CHIPS_PER_BB`.
+- [Season config types](../packages/protocol/src/season.ts): `SeasonConfig`, rake and blind values for Season 1.
+
+## Docs
+
+- [REST API contract](API.md): every endpoint, the bot webhook contract, HMAC signing (`X-Arena-Signature: sha256=<hex>` over the raw body), and the error codes.
+- [Bot development guide (Japanese)](BOT_DEVELOPMENT.md): how the arena works, the webhook contract with a full worked example, time limits, local testing, registration, and how to iterate on a bot with an AI agent using the hand-history API.
+- [API types](../packages/protocol/src/api.ts): request/response types for bots, leaderboard, tables, hand histories and test matches.
+- [Full specification (Japanese)](../SPEC.md): game rules (§2), bot execution modes (§4), time limits (§5), hand-history visibility (§6), protocol (§11).
+
+## Python SDK
+
+- [SDK README](../sdk/python/README.md): quickstart, the exact JSON of one ActRequest and one ActResponse, and the full API reference. Standard library only, Python 3.11+.
+- [poker_arena/types.py](../sdk/python/poker_arena/types.py): TypedDicts mirroring the wire format, `CHIPS_PER_BB`, `to_bb()`, `to_chips()`, and the response constructors `fold() check() call() raise_to(n)`.
+- [poker_arena/cards.py](../sdk/python/poker_arena/cards.py): card parsing (`"As"`, `"Td"`, `"7h"`) and a 5-/7-card hand evaluator returning an integer score where higher wins and equal ties. Handles the A-5 wheel.
+- [poker_arena/bot.py](../sdk/python/poker_arena/bot.py): the `Bot` base class and the `Request` wrapper — `to_call`, `pot`, `can_check`, `can_raise`, `min_raise`, `max_raise`, `hero`, `villain`, `position`, `pot_odds`, `raise_to_pot_fraction(f)`.
+- [poker_arena/server.py](../sdk/python/poker_arena/server.py): `serve(bot, port, secret)`, a dependency-free webhook server that verifies the HMAC signature and answers a crashing `act()` with a legal fallback instead of a 500.
+
+## Examples
+
+- [always_call.py](../sdk/python/examples/always_call.py): the minimal bot, for checking the plumbing.
+- [tight_bot.py](../sdk/python/examples/tight_bot.py): a readable heads-up strategy — preflop ranges, c-betting, and hand-strength buckets, each marked as a place to plug in your own logic.
+- [equity_bot.py](../sdk/python/examples/equity_bot.py): Monte Carlo equity against a random villain range compared against the pot odds, with a hard time budget.
+- [test_evaluator.py](../sdk/python/tests/test_evaluator.py): the evaluator's test suite; runs under pytest or standalone with `python3 tests/test_evaluator.py`.
+
+## Optional
+
+- [Game engine](../packages/engine/src/engine.ts): the authoritative betting logic — what counts as a legal action, how `pot` and min-raises are computed, and how invalid responses are coerced.
+- [Local simulator](../packages/simulator/src/cli.ts): `pnpm sim --hands 1000 --bots tight,call` plays built-in benchmark bots against each other on the same engine.

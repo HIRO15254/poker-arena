@@ -307,23 +307,32 @@ interface TableRow {
   id: string; bot_a: string; bot_b: string; hand_number: number; last_hand_id: string | null; updated_at: string;
 }
 
+function streetOfBoard(board: string[]): TableView["street"] {
+  if (board.length >= 5) return "river";
+  if (board.length === 4) return "turn";
+  if (board.length === 3) return "flop";
+  return "preflop";
+}
+
 app.get("/api/tables", async (c) => {
   const res = await c.env.DB.prepare(
-    "SELECT * FROM tables ORDER BY updated_at DESC LIMIT 40",
-  ).all<TableRow>();
-  const out: TableSummary[] = [];
-  for (const t of res.results ?? []) {
-    const names = await c.env.DB.prepare("SELECT id, name FROM bots WHERE id IN (?, ?)")
-      .bind(t.bot_a, t.bot_b).all<{ id: string; name: string }>();
-    out.push({
-      id: t.id,
-      format: "hu",
-      street: "preflop",
-      handNumber: t.hand_number,
-      seatedBots: (names.results ?? []).map((n) => n.name),
-      occupancy: "2/2",
-    });
-  }
+    `SELECT t.id, t.hand_number, ba.name AS name_a, bb.name AS name_b, h.board AS board
+     FROM tables t
+     LEFT JOIN bots ba ON ba.id = t.bot_a
+     LEFT JOIN bots bb ON bb.id = t.bot_b
+     LEFT JOIN hands h ON h.id = t.last_hand_id
+     ORDER BY t.updated_at DESC LIMIT 40`,
+  ).all<{ id: string; hand_number: number; name_a: string | null; name_b: string | null; board: string | null }>();
+
+  const out: TableSummary[] = (res.results ?? []).map((t) => ({
+    id: t.id,
+    format: "hu",
+    // 直近に完了したハンドが到達したストリート
+    street: streetOfBoard(t.board ? (JSON.parse(t.board) as string[]) : []),
+    handNumber: t.hand_number,
+    seatedBots: [t.name_a, t.name_b].filter((n): n is string => Boolean(n)),
+    occupancy: "2/2",
+  }));
   return c.json(out);
 });
 
@@ -368,16 +377,27 @@ app.get("/api/tables/:id", async (c) => {
 app.get("/api/hands", auth, async (c) => {
   const botId = c.req.query("botId");
   const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);
-  if (!botId) return fail(400, "invalid_request", "botId が必要です");
-  const bot = await getBot(c.env.DB, botId);
-  if (!bot) return fail(404, "not_found", "bot が見つかりません");
-  if (bot.owner_id !== c.get("userId")) return fail(403, "forbidden", "自分の bot ではありません");
 
-  const res = await c.env.DB.prepare(
-    `SELECT h.*, hs.seat AS my_seat, hs.net AS my_net
-     FROM hand_seats hs JOIN hands h ON h.id = hs.hand_id
-     WHERE hs.bot_id = ? ORDER BY hs.played_at DESC LIMIT ?`,
-  ).bind(botId, limit).all<any>();
+  // botId 省略時は自分の全 bot のハンドを新しい順に返す
+  let res;
+  if (botId) {
+    const bot = await getBot(c.env.DB, botId);
+    if (!bot) return fail(404, "not_found", "bot が見つかりません");
+    if (bot.owner_id !== c.get("userId")) return fail(403, "forbidden", "自分の bot ではありません");
+    res = await c.env.DB.prepare(
+      `SELECT h.*, hs.seat AS my_seat, hs.net AS my_net
+       FROM hand_seats hs JOIN hands h ON h.id = hs.hand_id
+       WHERE hs.bot_id = ? ORDER BY hs.played_at DESC LIMIT ?`,
+    ).bind(botId, limit).all<any>();
+  } else {
+    res = await c.env.DB.prepare(
+      `SELECT h.*, hs.seat AS my_seat, hs.net AS my_net
+       FROM hand_seats hs
+       JOIN hands h ON h.id = hs.hand_id
+       JOIN bots b ON b.id = hs.bot_id
+       WHERE b.owner_id = ? ORDER BY hs.played_at DESC LIMIT ?`,
+    ).bind(c.get("userId"), limit).all<any>();
+  }
 
   const hands: HandSummary[] = (res.results ?? []).map((h) => {
     const seats = JSON.parse(h.seats) as StoredSeat[];
@@ -499,17 +519,34 @@ app.post("/api/test-match", auth, async (c) => {
 
 app.post("/api/play", async (c) => {
   const body = await c.req.json<{ opponent?: string }>().catch(() => ({}) as { opponent?: string });
-  const opponent = body.opponent ?? "tight";
-  if (!isBuiltinStrategy(opponent)) {
-    return fail(400, "invalid_request", `opponent は ${BUILTIN_STRATEGIES.join(" / ")} のいずれか`);
+  const input = (body.opponent ?? "tight").trim();
+
+  // 組み込み戦略名か、登録済み bot の id を受け付ける。
+  // webhook bot は「同じ状況で必ず同じ手を返す」保証がなく、セッションの決定的再生が壊れるため対象外。
+  let strategy: string;
+  let label: string;
+  if (isBuiltinStrategy(input)) {
+    strategy = input;
+    label = input;
+  } else {
+    const bot = await getBot(c.env.DB, input);
+    if (!bot) {
+      return fail(400, "invalid_request", `opponent は ${BUILTIN_STRATEGIES.join(" / ")} または登録済み bot の id`);
+    }
+    if (bot.kind !== "builtin" || !bot.builtin_strategy) {
+      return fail(400, "invalid_request", "webhook bot とは対戦できません(再現性を保てないため)");
+    }
+    strategy = bot.builtin_strategy;
+    label = bot.name;
   }
+
   const id = newId("play");
   const at = nowIso();
   const seed = Math.floor(Math.random() * 2 ** 31);
   await c.env.DB.prepare(
-    `INSERT INTO play_sessions (id, opponent, seed, hand_number, hero_actions, total_hands, total_net, created_at, updated_at)
-     VALUES (?, ?, ?, 1, '[]', 0, 0, ?, ?)`,
-  ).bind(id, opponent, seed, at, at).run();
+    `INSERT INTO play_sessions (id, opponent, opponent_name, seed, hand_number, hero_actions, total_hands, total_net, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 1, '[]', 0, 0, ?, ?)`,
+  ).bind(id, strategy, label, seed, at, at).run();
   const row = await c.env.DB.prepare("SELECT * FROM play_sessions WHERE id = ?").bind(id).first<PlayRow>();
   const { session } = await buildSession(row!, currentSeason());
   return c.json(session);
