@@ -12,7 +12,7 @@ system are integer chips, never floats and never big blinds: `1bb = 100` chips.
 - Stacks: `100bb` = `10000` chips, **reset to 100bb at the start of every hand**.
 - Blinds: SB `50` / BB `100` chips. No antes, no straddles.
 - Position: **the button is the small blind**. It acts first preflop and last postflop.
-- Rake: `5%` of the pot, capped at `400` chips (`4bb`), no flop no drop.
+- Rake: `5%` of the pot, capped at `60` chips (`0.6bb`), no flop no drop. Heads-up pots are small, so this cap binds often.
 - Min-raise, side pots and showdown order follow standard rules (Robert's Rules).
 - Ranking: bb/100 after rake. A bot must play `10000` hands on its current version to be listed (`2000` during the Season 1 beta).
 - The arena pairs every active bot round-robin once a minute and plays a batch of hands; the button alternates each hand.

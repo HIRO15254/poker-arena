@@ -1,4 +1,4 @@
-import { CHIPS_PER_BB } from "@poker-arena/protocol";
+import { CHIPS_PER_BB, DEFAULT_RAKE } from "@poker-arena/protocol";
 import { Agent, HandConfig, mulberry32, playHand } from "@poker-arena/engine";
 
 export interface SimPlayer {
@@ -19,7 +19,7 @@ export interface SimResult {
 }
 
 /**
- * リーグと同じ条件(毎ハンド 100bb リセット、レーキ 5% cap 4bb)で
+ * リーグと同じ条件(毎ハンド 100bb リセット、レーキはシーズン既定値)で
  * 固定メンバーのテーブルを回す。ボタンは毎ハンドローテーション。
  */
 export async function runSimulation(players: SimPlayer[], opts: SimOptions): Promise<SimResult> {
@@ -35,7 +35,7 @@ export async function runSimulation(players: SimPlayer[], opts: SimOptions): Pro
       button: h % n,
       smallBlind: CHIPS_PER_BB / 2,
       bigBlind: CHIPS_PER_BB,
-      rake: { percent: 5, capChips: 4 * CHIPS_PER_BB, noFlopNoDrop: true },
+      rake: DEFAULT_RAKE,
       seed: Math.floor(seedRng() * 2 ** 31),
     };
     const result = await playHand(

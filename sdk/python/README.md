@@ -275,7 +275,7 @@ python3 tests/test_evaluator.py  # otherwise — same tests, no dependencies
 | Game | Heads-up No-Limit Hold'em, 2 players |
 | Stacks | `100bb` (`10000` chips), reset every hand |
 | Blinds | SB `50` / BB `100` chips (`1bb = 100`) |
-| Rake | 5%, capped at `400` chips (`4bb`), no flop no drop |
+| Rake | 5%, capped at `60` chips (`0.6bb`), no flop no drop |
 | Position | The button is the small blind: acts **first** preflop, **last** postflop |
 | Ranking | bb/100 after rake, minimum `10000` hands to be listed (`2000` in the beta) |
 | Time | `5s` per action + a `30s` time bank (`+2s` per hand) |

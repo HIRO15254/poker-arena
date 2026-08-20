@@ -5,7 +5,7 @@ describe("season config", () => {
   it("レーキ設定に NaN が入らない(循環インポート回帰)", () => {
     // constants.ts を分離する前は index.js との循環参照で capChips が NaN になっていた
     expect(CHIPS_PER_BB).toBe(100);
-    expect(DEFAULT_RAKE.capChips).toBe(400);
+    expect(DEFAULT_RAKE.capChips).toBe(60); // 0.6bb
     expect(Number.isNaN(DEFAULT_RAKE.capChips)).toBe(false);
     expect(DEFAULT_RAKE.percent).toBe(5);
     expect(DEFAULT_RAKE.noFlopNoDrop).toBe(true);
@@ -18,8 +18,8 @@ describe("season config", () => {
     expect(s.startingStackBb).toBe(100);
     expect(s.smallBlind).toBe(50);
     expect(s.bigBlind).toBe(100);
-    expect(s.rake.capChips).toBe(400);
-    expect(JSON.parse(JSON.stringify(s)).rake.capChips).toBe(400);
+    expect(s.rake.capChips).toBe(60);
+    expect(JSON.parse(JSON.stringify(s)).rake.capChips).toBe(60);
   });
 
   it("種目から席数が決まる", () => {

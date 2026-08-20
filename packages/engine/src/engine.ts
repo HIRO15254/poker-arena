@@ -18,7 +18,7 @@ export interface SeatInit {
 export interface RakeConfig {
   /** ポットに対する % (例: 5) */
   percent: number;
-  /** キャップ(チップ)。4bb = 400 */
+  /** キャップ(チップ)。シーズン1 は 0.6bb = 60 */
   capChips: number;
   /** フロップが開いていないハンドはレーキなし */
   noFlopNoDrop: boolean;

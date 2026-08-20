@@ -32,13 +32,23 @@ export interface SeasonConfig {
   official: boolean;
 }
 
+/**
+ * シーズン1(HU)のレーキ。5%、キャップ 0.6bb。
+ *
+ * 6-max 想定で決めた 4bb キャップは HU では実質的に効かず、レーキが
+ * 1人あたり 15bb/100 を超えていた。その結果、実力の近い bot 同士では
+ * 勝っている側まで bb/100 がマイナスに沈み、リーダーボードが
+ * 「どれだけ弱い相手と当たったか」の指標になっていた。
+ * 0.6bb は実測で、現時点の最強 bot が拮抗した相手に対して
+ * ちょうど収支ゼロになる水準(`pnpm rake` で再計測できる)。
+ */
 export const DEFAULT_RAKE: RakeConfig = {
   percent: 5,
-  capChips: 4 * CHIPS_PER_BB,
+  capChips: Math.round(0.6 * CHIPS_PER_BB),
   noFlopNoDrop: true,
 };
 
-/** シーズン1: ヘッズアップ NLH、100bb、レーキ 5% cap 4bb */
+/** シーズン1: ヘッズアップ NLH、100bb、レーキ 5% cap 0.6bb */
 export function seasonOneConfig(startsAt: string, endsAt: string): SeasonConfig {
   return {
     id: "s1",
