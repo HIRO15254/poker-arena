@@ -60,6 +60,15 @@ cd apps/server && npx wrangler d1 execute poker-arena --remote --file schema.sql
 
 ### 独自ドメイン
 
-`vcode-poker-arena.hiro15254.dev` を使うには、先に `hiro15254.dev` を Cloudflare の
-ゾーンとして追加する(ドメインを取得し、ネームサーバーを Cloudflare に向ける)。
-その後 `apps/server/wrangler.jsonc` の `routes` 行のコメントを外して deploy すれば切り替わる。
+希望されている `vcode-poker-arena.hiro15254.dev` はまだ使えない。
+確認したところ **`hiro15254.dev` は未登録**(NS・SOA レコードともに存在せず、
+whois も TLD の情報しか返さない)。手順は次のとおり。
+
+1. `hiro15254.dev` を取得する。Cloudflare Registrar で取ると、そのまま同じアカウントの
+   ゾーンとして登録されるので追加作業がいらない(他社で取った場合はネームサーバーを
+   Cloudflare に向けてゾーンを有効化する)。
+2. `apps/server/wrangler.jsonc` の `routes` 行のコメントを外す。
+3. `pnpm --filter @poker-arena/server deploy`
+
+注意: `routes` を設定すると wrangler は既定で `workers.dev` を無効化する。
+併用したい場合は `"workers_dev": true` を残しておくこと(設定済み)。
