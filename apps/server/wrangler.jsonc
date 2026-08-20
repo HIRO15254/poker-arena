@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vcode-poker-arena",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "account_id": "66e1835275dae08f3ba17c9c12371b8f",
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "poker-arena",
+      "database_id": "7f240d05-5459-4482-8b2c-7f6a33491f7e"
+    }
+  ],
+  // 希望ドメイン。hiro15254.dev を Cloudflare のゾーンとして追加したら、この2行を有効にして deploy する
+  // "routes": [{ "pattern": "vcode-poker-arena.hiro15254.dev", "custom_domain": true }],
+  "triggers": { "crons": ["* * * * *"] },
+  "observability": { "enabled": true }
+}

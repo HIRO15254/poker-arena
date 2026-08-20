@@ -1,0 +1,21 @@
+{
+  "name": "@poker-arena/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@poker-arena/engine": "workspace:*",
+    "@poker-arena/protocol": "workspace:*",
+    "@poker-arena/simulator": "workspace:*",
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "wrangler": "^4.124.0"
+  }
+}
