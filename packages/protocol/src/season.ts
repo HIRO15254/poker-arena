@@ -55,6 +55,12 @@ export interface SeasonConfig {
   minHandsForLeaderboard: number;
   /** 公式シーズンか(シーズン0 = ベータは非公式) */
   official: boolean;
+  /**
+   * Webhook 型 bot を受け付けるか。
+   * false の間、アリーナは外部への通信を一切行わない(SSRF の面もゼロになる)。
+   * 対戦できるのは組み込み戦略の bot のみ。
+   */
+  webhookBotsEnabled: boolean;
   /** アクションの制限時間 */
   timing: TimingConfig;
 }
@@ -90,6 +96,8 @@ export function seasonOneConfig(startsAt: string, endsAt: string): SeasonConfig 
     endsAt,
     minHandsForLeaderboard: 10_000,
     official: true,
+    // 当面は外部 fetch を止める。再開するときはここを true にするだけでよい
+    webhookBotsEnabled: false,
     timing: DEFAULT_TIMING,
   };
 }

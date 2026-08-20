@@ -36,7 +36,10 @@
 HTTP ステータス + `ApiError` ボディ。`401 unauthorized` / `403 forbidden` / `404 not_found` /
 `400 invalid_request` / `409 conflict`(bot 上限超過など)/ `429 rate_limited`。
 
-## bot Webhook 契約
+## bot Webhook 契約(現在停止中)
+
+> `GET /api/season` の `webhookBotsEnabled` が `false` の間、webhook 型 bot の登録・デプロイは
+> `400` で拒否され、リーグでも対戦対象にならない。以下は再開後の契約。
 
 アリーナが bot の `webhookUrl` に **POST** する。
 

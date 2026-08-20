@@ -41,6 +41,10 @@ Python SDK は [`sdk/python/`](../sdk/python/README.md)、REST API の契約は 
 
 ## 3. Webhook 契約
 
+> **現在 webhook 型 bot は受け付けていない。** `GET /api/season` の `webhookBotsEnabled` が
+> `false` の間はアリーナが外部へ通信しないため、登録すると `400` になる。
+> 以下は再開後の契約で、SDK とローカルテストはそのまま使える。
+
 アリーナが登録された `webhookUrl` に **POST** する。
 
 | 項目 | 値 |

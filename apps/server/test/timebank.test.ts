@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ActRequest } from "@poker-arena/protocol";
-import { DEFAULT_TIMING } from "@poker-arena/protocol";
+import { DEFAULT_TIMING, seasonOneConfig } from "@poker-arena/protocol";
 import { refillBank, webhookAgent, type TimeBank, type WebhookOutcome } from "../src/agents.js";
 
 const T = DEFAULT_TIMING;
@@ -147,5 +147,12 @@ describe("タイムバンクの消費", () => {
     expect(received).not.toBeNull();
     expect(received!.time_remaining_ms).toBe(5000);
     expect(received!.time_bank_ms).toBe(2500);
+  });
+});
+
+describe("webhook bot の停止", () => {
+  it("シーズン1では webhook を受け付けない", () => {
+    const s = seasonOneConfig("2026-08-01T00:00:00.000Z", "2026-09-01T00:00:00.000Z");
+    expect(s.webhookBotsEnabled).toBe(false);
   });
 });

@@ -33,6 +33,9 @@ app.use("/api/*", cors());
 const fail = (status: 400 | 401 | 403 | 404 | 429 | 409, error: string, message: string) =>
   Response.json({ error, message }, { status });
 
+const WEBHOOK_DISABLED_MESSAGE =
+  "現在 webhook 型 bot は受け付けていません。組み込み戦略 (kind: \"builtin\") で登録してください";
+
 /**
  * webhook の登録先として許可できる URL か。
  * https のみ。内部・ループバック・リンクローカルは SSRF になるので弾く。
@@ -267,6 +270,9 @@ app.post("/api/bots", auth, async (c) => {
   }
   const kind = body.kind === "builtin" ? "builtin" : "webhook";
   if (kind === "webhook") {
+    if (!currentSeason().webhookBotsEnabled) {
+      return fail(400, "invalid_request", WEBHOOK_DISABLED_MESSAGE);
+    }
     if (!body.webhookUrl || !isSafeWebhookUrl(body.webhookUrl)) {
       return fail(400, "invalid_request", "webhookUrl は公開ホストの https:// URL が必要です");
     }
@@ -324,8 +330,13 @@ app.post("/api/bots/:id/versions", auth, async (c) => {
   if (body.builtinStrategy !== undefined && !isBuiltinStrategy(body.builtinStrategy)) {
     return fail(400, "invalid_request", `builtinStrategy は ${BUILTIN_STRATEGIES.join(" / ")} のいずれか`);
   }
-  if (body.webhookUrl !== undefined && !isSafeWebhookUrl(body.webhookUrl)) {
-    return fail(400, "invalid_request", "webhookUrl は公開ホストの https:// URL が必要です");
+  if (body.webhookUrl !== undefined) {
+    if (!currentSeason().webhookBotsEnabled) {
+      return fail(400, "invalid_request", WEBHOOK_DISABLED_MESSAGE);
+    }
+    if (!isSafeWebhookUrl(body.webhookUrl)) {
+      return fail(400, "invalid_request", "webhookUrl は公開ホストの https:// URL が必要です");
+    }
   }
   const at = nowIso();
   await c.env.DB.prepare(

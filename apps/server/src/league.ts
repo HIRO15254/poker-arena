@@ -85,8 +85,10 @@ function agentFor(
   outcome: WebhookOutcome,
   bank: TimeBank,
   timing: SeasonConfig["timing"],
+  webhookEnabled: boolean,
 ): Agent {
   if (bot.kind === "webhook" && bot.webhook_url) {
+    if (!webhookEnabled) throw new Error("webhook bots are disabled");
     return webhookAgent(bot.webhook_url, bot.secret, timing.baseMsWebhook, bank, outcome);
   }
   return builtinAgent(bot.builtin_strategy ?? "call", seed);
@@ -157,7 +159,11 @@ export async function runLeagueBatch(
   budgetMs: number,
 ): Promise<BatchReport> {
   const started = Date.now();
-  const bots = await listActiveBots(env.DB);
+  const allActive = await listActiveBots(env.DB);
+  // webhook が無効な間は外部へ一切 fetch しない。対象から外す
+  const bots = season.webhookBotsEnabled
+    ? allActive
+    : allActive.filter((b) => b.kind !== "webhook");
   const report: BatchReport = {
     handsPlayed: 0,
     pairsPlayed: 0,
@@ -256,8 +262,8 @@ export async function runLeagueBatch(
         let result: HandResult;
         try {
           const agents = [
-            agentFor(a, seed, outcomeA, bankA, season.timing),
-            agentFor(b, seed + 1, outcomeB, bankB, season.timing),
+            agentFor(a, seed, outcomeA, bankA, season.timing, season.webhookBotsEnabled),
+            agentFor(b, seed + 1, outcomeB, bankB, season.timing, season.webhookBotsEnabled),
           ];
           result = await playHand(config, agents);
         } catch {

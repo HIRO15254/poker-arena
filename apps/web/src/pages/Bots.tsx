@@ -9,6 +9,7 @@ import { useApi } from "../hooks";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "../components/States";
 import { StatusBadge } from "./Leaderboard";
 import {
+  IconAlert,
   IconCheck,
   IconCopy,
   IconKey,
@@ -154,7 +155,9 @@ function CreateBotForm({
   onCancel: () => void;
 }) {
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<BotKind>("webhook");
+  const season = useApi((signal) => api.season(signal), []);
+  const webhookAllowed = season.data?.webhookBotsEnabled ?? false;
+  const [kind, setKind] = useState<BotKind>("builtin");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [strategy, setStrategy] = useState(BUILTIN_STRATEGIES[0] ?? "fold");
   const [busy, setBusy] = useState(false);
@@ -215,10 +218,22 @@ function CreateBotForm({
                 value={kind}
                 onChange={(e) => setKind(e.target.value as BotKind)}
               >
-                <option value="webhook">webhook — 自前のサーバーが応答する</option>
                 <option value="builtin">builtin — 組み込み戦略で動かす</option>
+                <option value="webhook" disabled={!webhookAllowed}>
+                  webhook — 自前のサーバーが応答する{webhookAllowed ? "" : "(現在停止中)"}
+                </option>
               </select>
             </div>
+
+            {!webhookAllowed ? (
+              <div className="notice">
+                <IconAlert className="icn14" />
+                <span>
+                  webhook 型 bot は現在受け付けていない。アリーナは外部への通信を行わないため、
+                  対戦できるのは組み込み戦略の bot のみ。
+                </span>
+              </div>
+            ) : null}
 
             {kind === "webhook" ? (
               <div className="field">
