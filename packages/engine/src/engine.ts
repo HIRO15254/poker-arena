@@ -183,7 +183,11 @@ export async function playHand(config: HandConfig, agents: Agent[]): Promise<Han
   };
 
   const bettingRound = async (street: Street): Promise<void> => {
-    let currentBet = street === "preflop" ? config.bigBlind : 0;
+    // 実際に出ている最大額。ブラインドがオールインで満額に満たない場合はその額が基準になる
+    let currentBet =
+      street === "preflop"
+        ? Math.max(0, ...seats.filter((s) => !s.folded).map((s) => s.streetBet))
+        : 0;
     // 最後のフルレイズ幅。プリフロップは BB、ポストフロップの最小ベットも BB
     let lastFullRaise = config.bigBlind;
     /** 最後のフルレイズ以降にアクション済みの席(ショートオールインではリセットされない) */
@@ -322,7 +326,13 @@ export async function playHand(config: HandConfig, agents: Agent[]): Promise<Han
       seats[sbSeat]!.streetBet = seats[sbSeat]!.committed;
       seats[bbSeat]!.streetBet = seats[bbSeat]!.committed;
     }
-    if (canAct().length > 1) {
+    // アクション可能な席が2つ以上あるか、1つでもその席が未払いを抱えているならラウンドを回す。
+    // 後者は「ブラインドをオールインで満額出せなかった相手に対して、
+    // もう一方がコール/フォールドを選べないまま showdown に進む」バグを防ぐ。
+    const actors = canAct();
+    const maxStreetBet = Math.max(0, ...seats.filter((s) => !s.folded).map((s) => s.streetBet));
+    const soleActorOwes = actors.length === 1 && actors[0]!.streetBet < maxStreetBet;
+    if (actors.length > 1 || soleActorOwes) {
       await bettingRound(street);
     }
   }

@@ -26,8 +26,9 @@ import {
   signedBb,
   signedNumber,
 } from "../format";
+import { BUILTIN_IDS as BUILTIN_STRATEGIES } from "../builtins";
 
-const BUILTIN_STRATEGIES = ["fold", "call", "random", "aggro", "tight"];
+
 
 // ---------- サインアップ ----------
 

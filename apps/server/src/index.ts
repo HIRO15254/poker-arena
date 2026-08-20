@@ -135,6 +135,7 @@ app.post("/api/signup", async (c) => {
 });
 
 app.get("/api/me", auth, async (c) => {
+  // apiKey はハッシュしか保存していないため返せない。クライアントが自分で保持する。
   return c.json({ id: c.get("userId"), name: c.get("userName"), botLimit: 3 });
 });
 
@@ -166,6 +167,7 @@ async function botToDetail(env: Env, row: BotRow, ownerName: string, includePriv
   };
   if (includePrivate) {
     detail.webhookUrl = row.webhook_url ?? undefined;
+    detail.secret = row.secret;
     detail.builtinStrategy = row.builtin_strategy ?? undefined;
     detail.lastError = row.last_error ? { message: row.last_error, at: row.last_error_at ?? "" } : null;
     const timelineRes = await env.DB.prepare(
@@ -248,7 +250,7 @@ app.post("/api/bots", auth, async (c) => {
 
   const row = await getBot(c.env.DB, id);
   const detail = await botToDetail(c.env, row!, c.get("userName"), true);
-  return c.json({ ...detail, secret });
+  return c.json(detail);
 });
 
 async function ownedBot(c: any): Promise<BotRow | Response> {

@@ -1,10 +1,10 @@
 import type { ActRequest, ActResponse } from "@poker-arena/protocol";
 import type { Agent } from "@poker-arena/engine";
-import { makeBot, type BotName } from "@poker-arena/simulator";
+import { BOT_NAMES, makeBot, type BotName } from "@poker-arena/simulator";
 import { hmacSha256Hex } from "./util.js";
 
-/** UI に出す組み込み戦略。simulator 側に存在するものだけを並べる */
-export const BUILTIN_STRATEGIES = ["fold", "call", "random", "aggro", "tight"] as const;
+/** UI に出す組み込み戦略。simulator の一覧をそのまま使う(取りこぼしを防ぐ) */
+export const BUILTIN_STRATEGIES: readonly string[] = BOT_NAMES;
 
 export function isBuiltinStrategy(name: string): boolean {
   try {

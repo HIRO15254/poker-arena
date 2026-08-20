@@ -14,9 +14,10 @@
 |---|---|---|---|
 | GET | `/api/health` | – | `{ ok: true, season: SeasonConfig, tables: number, bots: number }` |
 | GET | `/api/season` | – | `SeasonConfig` |
+| GET | `/api/builtins` | – | `{ strategies: string[] }` 組み込み戦略の一覧 |
 | GET | `/api/leaderboard` | – | `LeaderboardResponse` |
 | GET | `/api/bots` | 要 | 自分の bot 一覧 `BotSummary[]` |
-| POST | `/api/bots` | 要 | `CreateBotRequest` → `BotDetail` |
+| POST | `/api/bots` | 要 | `CreateBotRequest` → `BotDetail`(`secret` を含む) |
 | GET | `/api/bots/:id` | 任意 | `BotDetail`(他人の bot は公開項目のみ) |
 | POST | `/api/bots/:id/versions` | 要 | `DeployVersionRequest` → `BotDetail`。**シーズン成績はリセット** |
 | POST | `/api/bots/:id/activate` | 要 | 稼働開始 → `BotDetail` |
@@ -28,7 +29,7 @@
 | GET | `/api/hands?botId=&limit=&cursor=&minNet=&maxNet=&showdown=` | 要 | `{ hands: HandSummary[], nextCursor: string \| null }` |
 | GET | `/api/hands/:handId` | 要 | `HandDetail`(自分視点) |
 | POST | `/api/test-match` | 要 | `TestMatchRequest` → `TestMatchResponse`。レーティング非反映 |
-| GET | `/api/me` | 要 | `{ id, name, apiKey, botLimit }` |
+| GET | `/api/me` | 要 | `{ id, name, botLimit }`。apiKey はハッシュ保存のため返らない |
 
 ### エラー
 

@@ -36,6 +36,8 @@ export interface BotSummary {
 export interface BotDetail extends BotSummary {
   /** 自分の bot のみ返る */
   webhookUrl?: string;
+  /** 自分の bot のみ返る。webhook の HMAC 署名検証に使う */
+  secret?: string;
   builtinStrategy?: string;
   lastError?: { message: string; at: string } | null;
   versions: BotVersionRecord[];
@@ -167,7 +169,7 @@ export interface CreateBotRequest {
   kind: BotKind;
   /** kind=webhook の場合必須 */
   webhookUrl?: string;
-  /** kind=builtin の場合必須 (fold|call|random|aggro|tight) */
+  /** kind=builtin の場合必須。取りうる値は GET /api/builtins が返す */
   builtinStrategy?: string;
 }
 

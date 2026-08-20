@@ -22,6 +22,7 @@ import {
   signedBb,
   signedNumber,
 } from "../format";
+import { BUILTIN_STRATEGIES } from "../builtins";
 
 const SESSION_KEY = "poker-arena.playSessionId";
 
@@ -31,13 +32,7 @@ interface OpponentOption {
   description: string;
 }
 
-const OPPONENTS: OpponentOption[] = [
-  { id: "tight", label: "tight", description: "強いハンドだけを続ける。堅実なバリュー志向" },
-  { id: "aggro", label: "aggro", description: "高頻度でベット・レイズして圧をかける" },
-  { id: "random", label: "random", description: "合法アクションから一様ランダムに選ぶ" },
-  { id: "call", label: "call", description: "常にコール。ショーダウンまで降りない" },
-  { id: "fold", label: "fold", description: "常にフォールド。動作確認用" },
-];
+const OPPONENTS: OpponentOption[] = BUILTIN_STRATEGIES;
 
 type CallAction = Extract<LegalAction, { action: "call" }>;
 type RaiseAction = Extract<LegalAction, { action: "raise" }>;
