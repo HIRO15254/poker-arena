@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS bots (
   last_error            TEXT,
   last_error_at         TEXT,
   consecutive_failures  INTEGER NOT NULL DEFAULT 0,
+  time_bank_ms          INTEGER NOT NULL DEFAULT 1000,
   created_at            TEXT NOT NULL,
   updated_at            TEXT NOT NULL
 );

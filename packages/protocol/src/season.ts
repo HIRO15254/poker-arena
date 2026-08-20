@@ -13,6 +13,31 @@ export interface RakeConfig {
   noFlopNoDrop: boolean;
 }
 
+/** アクションの制限時間とタイムバンク(SPEC §5) */
+export interface TimingConfig {
+  /** Webhook 型の基本制限時間(ms) */
+  baseMsWebhook: number;
+  /** アップロード型(サンドボックス)の基本制限時間(ms) */
+  baseMsSandbox: number;
+  /** タイムバンクの初期値(ms) */
+  bankInitialMs: number;
+  /** ハンド開始ごとの回復量(ms) */
+  bankRefillPerHandMs: number;
+  /** タイムバンクの上限(ms) */
+  bankCapMs: number;
+  /** 連続でこの回数タイムアウト処理されたら自動離席 */
+  autoErrorAfter: number;
+}
+
+export const DEFAULT_TIMING: TimingConfig = {
+  baseMsWebhook: 5000,
+  baseMsSandbox: 2000,
+  bankInitialMs: 1000,
+  bankRefillPerHandMs: 500,
+  bankCapMs: 10000,
+  autoErrorAfter: 20,
+};
+
 export interface SeasonConfig {
   id: string;
   name: string;
@@ -30,6 +55,8 @@ export interface SeasonConfig {
   minHandsForLeaderboard: number;
   /** 公式シーズンか(シーズン0 = ベータは非公式) */
   official: boolean;
+  /** アクションの制限時間 */
+  timing: TimingConfig;
 }
 
 /**
@@ -63,6 +90,7 @@ export function seasonOneConfig(startsAt: string, endsAt: string): SeasonConfig 
     endsAt,
     minHandsForLeaderboard: 10_000,
     official: true,
+    timing: DEFAULT_TIMING,
   };
 }
 

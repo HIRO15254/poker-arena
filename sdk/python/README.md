@@ -102,7 +102,7 @@ flop — three jacks — facing a `3bb` bet into a `6bb` pot:
     { "action": "raise", "min": 600, "max": 9700 }
   ],
   "time_remaining_ms": 5000,
-  "time_bank_ms": 30000
+  "time_bank_ms": 2500
 }
 ```
 
@@ -190,7 +190,7 @@ Full REST contract: [`docs/API.md`](../../docs/API.md).
 
 ## 6. Time limits
 
-`5s` per action for webhook bots, plus a `30s` time bank that refills `2s` per
+`5s` per action for webhook bots, plus a time bank starting at `1s` that refills `500ms` per
 hand. Over the limit, invalid, or an HTTP error, and the arena plays **check if
 legal, otherwise fold** for you. `20` consecutive transport failures and the bot
 is removed from its table with `status: "error"` until you redeploy.

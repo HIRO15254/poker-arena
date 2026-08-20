@@ -43,7 +43,8 @@ HTTP ステータス + `ApiError` ボディ。`401 unauthorized` / `403 forbidde
 - ヘッダ: `Content-Type: application/json`、`X-Arena-Signature: sha256=<hex>`(HMAC-SHA256、bot のシークレット)、`X-Arena-Hand-Id`
 - ボディ: [`ActRequest`](../packages/protocol/schema/act_request.schema.json)
 - レスポンス: [`ActResponse`](../packages/protocol/schema/act_response.schema.json)、HTTP 200
-- 制限時間: 既定 5 秒 + タイムバンク。超過・不正・HTTP エラーは **check 可能なら check、不可なら fold**
+- 制限時間: 基本 5 秒 + タイムバンク残高。バンクは初期 1 秒、ハンドごとに +0.5 秒回復、上限 10 秒。
+  基本時間の超過分だけバンクが減る。超過・不正・HTTP エラーは **check 可能なら check、不可なら fold**
 - 連続 20 回のタイムアウトで自動離席(`status: "error"`)
 
 ## シーズン1(HU NLH)

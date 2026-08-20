@@ -20,6 +20,8 @@ export interface BotRow {
   last_error: string | null;
   last_error_at: string | null;
   consecutive_failures: number;
+  /** タイムバンクの残高(ms)。バッチをまたいで持ち越す */
+  time_bank_ms: number;
   created_at: string;
   updated_at: string;
 }

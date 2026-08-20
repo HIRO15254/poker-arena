@@ -6,14 +6,11 @@ import {
   type HandResult,
 } from "@poker-arena/engine";
 import type { Env } from "./env.js";
-import { builtinAgent, webhookAgent, type WebhookOutcome } from "./agents.js";
+import { builtinAgent, refillBank, webhookAgent, type TimeBank, type WebhookOutcome } from "./agents.js";
 import { listActiveBots, type BotRow, type StoredSeat } from "./store.js";
 import { newId, newSecret, nowIso } from "./util.js";
 import { secureDeck, secureSeed } from "./shuffle.js";
 
-const WEBHOOK_TIMEOUT_MS = 5000;
-/** 連続失敗がこの回数に達した bot は自動離席する(SPEC §5) */
-const AUTO_ERROR_THRESHOLD = 20;
 /** 保存するハンド履歴の上限。超過分は古い順に削除 */
 const HAND_RETENTION = 20000;
 /** bb/100 推移の保持点数(bot・バージョンごと)。API が返す上限と揃える */
@@ -82,14 +79,15 @@ export async function ensureBuiltins(env: Env): Promise<void> {
   await env.DB.batch(stmts);
 }
 
-function agentFor(bot: BotRow, seed: number, outcome: WebhookOutcome): Agent {
+function agentFor(
+  bot: BotRow,
+  seed: number,
+  outcome: WebhookOutcome,
+  bank: TimeBank,
+  timing: SeasonConfig["timing"],
+): Agent {
   if (bot.kind === "webhook" && bot.webhook_url) {
-    return webhookAgent(
-      bot.webhook_url,
-      bot.secret,
-      WEBHOOK_TIMEOUT_MS,
-      outcome,
-    );
+    return webhookAgent(bot.webhook_url, bot.secret, timing.baseMsWebhook, bank, outcome);
   }
   return builtinAgent(bot.builtin_strategy ?? "call", seed);
 }
@@ -185,6 +183,7 @@ export async function runLeagueBatch(
     { botA: string; botB: string; handNumber: number; lastHandId: string }
   >();
   const failures = new Map<string, WebhookOutcome>();
+  const banks = new Map<string, TimeBank>();
 
   // 総当たりのペアを作り、tick ごとに開始位置をずらして偏りを防ぐ
   const pairs: [BotRow, BotRow][] = [];
@@ -225,9 +224,18 @@ export async function runLeagueBatch(
       failures.set(a.id, outcomeA);
       failures.set(b.id, outcomeB);
 
+      const bankA: TimeBank = banks.get(a.id) ?? { ms: a.time_bank_ms };
+      const bankB: TimeBank = banks.get(b.id) ?? { ms: b.time_bank_ms };
+      banks.set(a.id, bankA);
+      banks.set(b.id, bankB);
+
       for (let h = 0; h < handsThisPair; h++) {
         if (Date.now() - started > budgetMs) break;
         handNumber++;
+        // ハンド開始ごとにバンクを回復させる(上限あり)
+        for (const bank of [bankA, bankB]) {
+          refillBank(bank, season.timing.bankRefillPerHandMs, season.timing.bankCapMs);
+        }
         const button = handNumber % 2; // 0 → a がボタン(=SB)
         const seed = secureSeed(); // bot の内部乱数用。デッキとは無関係
         const handId = newId("h");
@@ -248,8 +256,8 @@ export async function runLeagueBatch(
         let result: HandResult;
         try {
           const agents = [
-            agentFor(a, seed, outcomeA),
-            agentFor(b, seed + 1, outcomeB),
+            agentFor(a, seed, outcomeA, bankA, season.timing),
+            agentFor(b, seed + 1, outcomeB, bankB, season.timing),
           ];
           result = await playHand(config, agents);
         } catch {
@@ -298,7 +306,7 @@ export async function runLeagueBatch(
     report.error = err instanceof Error ? err.message : String(err);
   }
 
-  await persist(env, season, deltas, handRows, tableUpdates, failures, report);
+  await persist(env, season, deltas, handRows, tableUpdates, failures, banks, report);
   report.elapsedMs = Date.now() - started;
   return report;
 }
@@ -320,6 +328,7 @@ async function persist(
     { botA: string; botB: string; handNumber: number; lastHandId: string }
   >,
   failures: Map<string, WebhookOutcome>,
+  banks: Map<string, TimeBank>,
   report: BatchReport,
 ): Promise<void> {
   const at = nowIso();
@@ -433,7 +442,7 @@ async function persist(
   }
 
   for (const [botId, outcome] of failures) {
-    if (outcome.failures >= AUTO_ERROR_THRESHOLD) {
+    if (outcome.failures >= season.timing.autoErrorAfter) {
       report.deactivated.push(botId);
       stmts.push(
         env.DB.prepare(
@@ -454,6 +463,16 @@ async function persist(
         ).bind(outcome.failures, outcome.lastError, at, botId),
       );
     }
+  }
+
+  // タイムバンクの残高を保存する(次の tick に持ち越す)
+  for (const [botId, bank] of banks) {
+    stmts.push(
+      env.DB.prepare("UPDATE bots SET time_bank_ms = ? WHERE id = ?").bind(
+        Math.max(0, Math.round(bank.ms)),
+        botId,
+      ),
+    );
   }
 
   // bb/100 推移のスナップショット

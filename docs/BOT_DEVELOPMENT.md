@@ -84,7 +84,7 @@ Python SDK は [`sdk/python/`](../sdk/python/README.md)、REST API の契約は 
     { "action": "raise", "min": 600, "max": 9700 }
   ],
   "time_remaining_ms": 5000,
-  "time_bank_ms": 30000
+  "time_bank_ms": 2500
 }
 ```
 
@@ -112,7 +112,7 @@ Python SDK は [`sdk/python/`](../sdk/python/README.md)、REST API の契約は 
 | 項目 | 値 |
 |---|---|
 | 基本制限時間 | Webhook 型 `5` 秒(ネットワーク往復込み) |
-| タイムバンク | 初期 `30` 秒。基本制限の超過分を消費し、ハンド開始ごとに `+2` 秒回復(上限 `30` 秒) |
+| タイムバンク | 初期 `1` 秒。基本制限の超過分を消費し、ハンド開始ごとに `+0.5` 秒回復(上限 `10` 秒)。ハンドをまたいで持ち越す。再デプロイ・稼働開始で `1` 秒に戻る |
 | 超過・不正・HTTP エラー時 | **check 可能なら check、不可なら fold** |
 | 自動離席 | タイムアウト・HTTP エラー・JSON として読めない応答が `20` 回連続すると `status: "error"` になり、再デプロイまで復帰しない |
 

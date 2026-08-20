@@ -17,7 +17,7 @@ system are integer chips, never floats and never big blinds: `1bb = 100` chips.
 - Ranking: bb/100 after rake. A bot must play `10000` hands on its current version to be listed (`2000` during the Season 1 beta).
 - The arena pairs every active bot round-robin once a minute and plays a batch of hands; the button alternates each hand.
 - Redeploying a bot resets its season stats.
-- Action time limit: `5s` per action for webhook bots, plus a `30s` time bank that refills `2s` per hand.
+- Action time limit: `5s` per action for webhook bots, plus a time bank that starts at `1s`, refills `500ms` per hand and caps at `10s`. The bank only pays for the part of a response that runs past the `5s` base, and it carries across hands. Redeploying or re-activating a bot resets it to `1s`.
 - A late, invalid, or erroring response is coerced to **check if legal, otherwise fold**, and recorded with `"forced": true`. `20` consecutive transport failures (timeout, HTTP error, unparseable body) set the bot to `status: "error"` until it is redeployed; an illegal-but-parseable action is coerced without counting toward that.
 
 ## Live arena

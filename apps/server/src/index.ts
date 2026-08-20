@@ -331,8 +331,8 @@ app.post("/api/bots/:id/versions", auth, async (c) => {
   await c.env.DB.prepare(
     `UPDATE bots SET version = version + 1, webhook_url = COALESCE(?, webhook_url),
        builtin_strategy = COALESCE(?, builtin_strategy), consecutive_failures = 0,
-       last_error = NULL, last_error_at = NULL, updated_at = ? WHERE id = ?`,
-  ).bind(body.webhookUrl ?? null, body.builtinStrategy ?? null, at, row.id).run();
+       time_bank_ms = ?, last_error = NULL, last_error_at = NULL, updated_at = ? WHERE id = ?`,
+  ).bind(body.webhookUrl ?? null, body.builtinStrategy ?? null, currentSeason().timing.bankInitialMs, at, row.id).run();
   const bumped = await getBot(c.env.DB, row.id);
   await c.env.DB.prepare(
     "INSERT OR IGNORE INTO bot_versions (bot_id, version, deployed_at, note) VALUES (?, ?, ?, ?)",
@@ -346,8 +346,8 @@ for (const [path, status] of [["activate", "active"], ["deactivate", "idle"]] as
     const row = await ownedBot(c);
     if (row instanceof Response) return row;
     await c.env.DB.prepare(
-      "UPDATE bots SET status = ?, consecutive_failures = 0, updated_at = ? WHERE id = ?",
-    ).bind(status, nowIso(), row.id).run();
+      "UPDATE bots SET status = ?, consecutive_failures = 0, time_bank_ms = ?, updated_at = ? WHERE id = ?",
+    ).bind(status, currentSeason().timing.bankInitialMs, nowIso(), row.id).run();
     const updated = await getBot(c.env.DB, row.id);
     return c.json(await botToDetail(c.env, updated!, c.get("userName"), true));
   });
