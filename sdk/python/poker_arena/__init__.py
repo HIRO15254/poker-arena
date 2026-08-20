@@ -18,6 +18,7 @@ Stdlib only, Python 3.11+.
 
 from .bot import Bot, BotLike, Request, as_callable
 from .client import ArenaClient, ArenaError
+from .upload import MAX_CODE_BYTES, Measurement, check_upload, measure_code
 from .cards import (
     CATEGORY_NAMES,
     DECK,
@@ -77,6 +78,10 @@ __all__ = [
     "__version__",
     # bot
     "ArenaClient",
+    "MAX_CODE_BYTES",
+    "Measurement",
+    "check_upload",
+    "measure_code",
     "ArenaError",
     "Bot",
     "BotLike",

@@ -6,7 +6,8 @@
     "test": "vitest run",
     "typecheck": "tsc -b packages/protocol packages/engine packages/simulator",
     "sim": "tsx packages/simulator/src/cli.ts",
-    "rake": "tsx packages/simulator/src/rake-report.ts"
+    "rake": "tsx packages/simulator/src/rake-report.ts",
+    "measure": "tsx packages/simulator/src/measure.ts"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

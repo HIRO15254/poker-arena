@@ -68,4 +68,5 @@ export type ActResponse =
   | { action: "raise"; amount: number };
 
 export * from "./season.js";
+export * from "./upload.js";
 export * from "./api.js";

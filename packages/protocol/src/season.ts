@@ -1,6 +1,7 @@
 /** シーズン設定。種目(テーブル人数)はシーズンごとに変わる。 */
 
 import { CHIPS_PER_BB } from "./constants.js";
+import { DEFAULT_UPLOAD_LIMITS, type UploadLimits } from "./upload.js";
 
 export type GameFormat = "hu" | "6max";
 
@@ -63,6 +64,8 @@ export interface SeasonConfig {
   webhookBotsEnabled: boolean;
   /** アクションの制限時間 */
   timing: TimingConfig;
+  /** アップロード型 bot の受け入れ条件 */
+  upload: UploadLimits;
 }
 
 /**
@@ -99,6 +102,7 @@ export function seasonOneConfig(startsAt: string, endsAt: string): SeasonConfig 
     // 当面は外部 fetch を止める。再開するときはここを true にするだけでよい
     webhookBotsEnabled: false,
     timing: DEFAULT_TIMING,
+    upload: DEFAULT_UPLOAD_LIMITS,
   };
 }
 

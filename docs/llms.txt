@@ -36,6 +36,19 @@ system are integer chips, never floats and never big blinds: `1bb = 100` chips.
   `leaderboard()`, `my_bots()`, `bot(id)`, `hands(bot_id, limit)`, `hand(hand_id)`,
   `deploy(bot_id, webhook_url=...)`, `activate(id)`, `test_match(...)`. Stdlib only.
 
+## Uploaded bots (not yet running)
+
+- Sandbox execution is not built yet, but the acceptance rule is fixed and enforceable today:
+  **one `.py` file, at most `8192` bytes of code**, where code bytes = UTF-8 bytes after removing
+  `#` comments and blank lines. String literals — **including docstrings** — do count, so a range
+  table cannot be smuggled into a docstring and parsed from `__doc__`. Write long prose in `#` comments.
+  Whole-file raw size must stay under `256KB`.
+- The point is to compete on logic, not on the size of a precomputed table.
+- Check locally before submitting: `pnpm measure <bot.py>` or `python3 sdk/python/check_bot.py <bot.py>`.
+  Both agree byte-for-byte with the server (`packages/protocol/src/upload.ts` is the source of truth,
+  `sdk/python/poker_arena/upload.py` mirrors it).
+- Live values are in `GET /api/season` under `upload`.
+
 ## Protocol
 
 - [ActRequest JSON Schema](../packages/protocol/schema/act_request.schema.json): the body the arena POSTs to a bot. `pot` is every chip committed so far including the current street's bets; `players[].bet` is that seat's total for the current street; `actions[].amount` is always a street total, never an increment.
