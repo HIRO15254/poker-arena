@@ -10,7 +10,7 @@ import {
   type SeasonConfig,
   type Street,
 } from "@poker-arena/protocol";
-import { categoryOf, playHand, type Agent, type HandConfig, type HandResult } from "@poker-arena/engine";
+import { categoryOf, playHand, type Agent, type Card, type HandConfig, type HandResult } from "@poker-arena/engine";
 import { builtinAgent } from "./agents.js";
 import type { PlayRow } from "./store.js";
 import { mixSeed } from "./util.js";
@@ -45,7 +45,9 @@ function streetFromBoard(board: string[]): Street {
  */
 async function runHand(
   season: SeasonConfig,
+  sessionId: string,
   seed: number,
+  deck: Card[] | undefined,
   handNumber: number,
   opponent: string,
   heroActions: ActResponse[],
@@ -69,7 +71,9 @@ async function runHand(
   };
 
   const config: HandConfig = {
-    handId: `play_${seed}_${handNumber}`,
+    // handId にシードを埋めない。埋めるとクライアントがデッキを復元でき、
+    // 相手のホールカードと未来のボードが読めてしまう。
+    handId: `${sessionId}_h${handNumber}`,
     seats: [
       { id: "you", stack: season.startingStackBb * CHIPS_PER_BB },
       { id: opponent, stack: season.startingStackBb * CHIPS_PER_BB },
@@ -78,7 +82,9 @@ async function runHand(
     smallBlind: season.smallBlind,
     bigBlind: season.bigBlind,
     rake: season.rake,
-    seed: handSeed,
+    // 保存済みデッキがあればそれを使う(CSPRNG 生成・セッション行にのみ存在)。
+    // 無い場合は旧セッションなのでシード方式にフォールバックする。
+    ...(deck ? { deck } : { seed: handSeed }),
   };
 
   const agents: Agent[] = [heroAgent, builtinAgent(opponent, handSeed)];
@@ -165,7 +171,10 @@ export async function buildSession(row: PlayRow, season: SeasonConfig): Promise<
   const button = buttonForHand(row.hand_number);
   const startingStack = season.startingStackBb * CHIPS_PER_BB;
   const label = row.opponent_name ?? row.opponent;
-  const outcome = await runHand(season, row.seed, row.hand_number, row.opponent, heroActions);
+  const deck = row.deck ? (JSON.parse(row.deck) as Card[]) : undefined;
+  const outcome = await runHand(
+    season, row.id, row.seed, deck, row.hand_number, row.opponent, heroActions,
+  );
 
   const base = {
     id: row.id,

@@ -223,7 +223,12 @@ export async function playHand(config: HandConfig, agents: Agent[]): Promise<Han
       else legal.push({ action: "call", amount: Math.min(toCall, seat.stack) });
       const maxRaiseTo = seat.streetBet + seat.stack;
       const minRaiseTo = Math.min(currentBet + lastFullRaise, maxRaiseTo);
-      const raiseAllowed = maxRaiseTo > currentBet && !(toCall > 0 && actedSinceFullRaise.has(idx));
+      // 応答できる相手が誰も残っていない場合、レイズは意味を持たない(超過分は返却される)
+      const othersCanRespond = seats.some((s) => s.idx !== idx && !s.folded && !s.allIn);
+      const raiseAllowed =
+        maxRaiseTo > currentBet &&
+        othersCanRespond &&
+        !(toCall > 0 && actedSinceFullRaise.has(idx));
       if (raiseAllowed) legal.push({ action: "raise", min: minRaiseTo, max: maxRaiseTo });
 
       // bot に問い合わせ、不正なら check があれば check、なければ fold(SPEC §11)
@@ -338,6 +343,22 @@ export async function playHand(config: HandConfig, agents: Agent[]): Promise<Han
   }
 
   // 決着
+  // 相手にコールされなかった超過分(uncalled bet)は賭けた本人に返す。
+  // これを返さずにレーキを計算すると、フォールド勝ちしたときに
+  // 実際には争われていないチップにまでレーキがかかる(勝者が損をする)。
+  {
+    const sortedCommitted = seats.map((s) => s.committed).sort((a, b) => b - a);
+    const highest = sortedCommitted[0] ?? 0;
+    const second = sortedCommitted[1] ?? 0;
+    if (highest > second) {
+      const over = seats.find((s) => s.committed === highest);
+      if (over) {
+        const refund = highest - second;
+        over.committed -= refund;
+        over.stack += refund;
+      }
+    }
+  }
   const pot = totalPot();
   const flopDealt = board.length >= 3;
   const rakeTotal =

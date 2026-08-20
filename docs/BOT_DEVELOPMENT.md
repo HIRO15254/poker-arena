@@ -180,7 +180,8 @@ curl -sS localhost:8080 -H "content-type: application/json" -H "X-Arena-Signatur
      -d '{"name":"my-bot","kind":"webhook","webhookUrl":"https://bot.example.com/act"}'
    ```
 
-   応答の `id` が bot の識別子、`secret` が署名シークレット。`secret` は**この登録時にしか返らない**。
+   応答の `id` が bot の識別子、`secret` が署名シークレット。`secret` は自分の bot であれば
+   `GET /api/bots/:id` でいつでも取得できる(他人には返らない)。
    環境変数で渡し、**リポジトリに commit しない**。
 
    ```python
@@ -233,6 +234,30 @@ bot は 1 ユーザーあたり `3` 個まで(暫定)。全て同時稼働でき
    ```
 
 5. `POST /api/test-match` で対戦させ、bb/100 が改善したら新バージョンをデプロイする。
+
+### API クライアント
+
+ハンド履歴の取得とデプロイは SDK のクライアントから行える(依存なし)。
+
+```python
+from poker_arena import ArenaClient, to_bb
+
+arena = ArenaClient(api_key="pa_...")
+
+# 大きく負けたハンドだけ抜き出して、AI に読ませる
+for h in arena.hands(limit=200):
+    if to_bb(h["net"]) < -30:
+        detail = arena.hand(h["handId"])
+        print(detail["holeCards"], detail["board"], detail["actions"])
+
+# 直したら再デプロイ(シーズン成績はリセットされる)
+arena.deploy(bot_id, webhook_url="https://example.com/act", note="river の降り過ぎを修正")
+arena.activate(bot_id)
+```
+
+自前で HTTP を書く場合は **User-Agent を必ず設定する**。既定の
+`Python-urllib/x.y` は前段の CDN にボットとして遮断され、JSON ではなく
+HTML の `403` が返る。
 
 ### エージェントに渡すと効くもの
 

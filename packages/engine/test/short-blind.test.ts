@@ -87,8 +87,9 @@ describe("ブラインドがオールインで満額に満たない場合", () =
 
     // 両者とも支払い義務が残らない(SB は全部出してオールイン、BB は誰も上乗せしていない)
     expect(asked).toBe(0);
-    expect(result.totalPot).toBe(130);
-    // 未コール分の 70 は BB に戻る
+    // SB は 30 でオールイン、BB は 100 を投入。マッチするのは 30 ずつなので
+    // 争われたポットは 60。BB の未コール分 70 は返却される。
+    expect(result.totalPot).toBe(60);
     const net = Object.fromEntries(result.seats.map((s) => [s.id, s.net]));
     expect(net.btn! + net.bb!).toBe(0 - result.rake);
   });

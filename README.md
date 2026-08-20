@@ -3,7 +3,7 @@
 自作ポーカーボットを持ち寄って対戦させるアリーナ。ブラウザから人間が bot と対戦することもできる。
 AI エージェント(Claude Code 等)による bot 開発を REST API / ドキュメントで第一級にサポートする。
 
-**公開先**: https://vcode-poker-arena.hiro15254.workers.dev
+**公開先**: https://vcode-poker-arena.hiro15254.com
 
 ## Season 1 — Heads-Up NLH
 
@@ -58,17 +58,9 @@ D1 のスキーマ変更を反映する場合:
 cd apps/server && npx wrangler d1 execute poker-arena --remote --file schema.sql
 ```
 
-### 独自ドメイン
+### ドメイン
 
-希望されている `vcode-poker-arena.hiro15254.dev` はまだ使えない。
-確認したところ **`hiro15254.dev` は未登録**(NS・SOA レコードともに存在せず、
-whois も TLD の情報しか返さない)。手順は次のとおり。
-
-1. `hiro15254.dev` を取得する。Cloudflare Registrar で取ると、そのまま同じアカウントの
-   ゾーンとして登録されるので追加作業がいらない(他社で取った場合はネームサーバーを
-   Cloudflare に向けてゾーンを有効化する)。
-2. `apps/server/wrangler.jsonc` の `routes` 行のコメントを外す。
-3. `pnpm --filter @poker-arena/server deploy`
-
-注意: `routes` を設定すると wrangler は既定で `workers.dev` を無効化する。
-併用したい場合は `"workers_dev": true` を残しておくこと(設定済み)。
+本番は `vcode-poker-arena.hiro15254.com`(Cloudflare のカスタムドメイン)。
+`vcode-poker-arena.hiro15254.workers.dev` も引き続き到達できる。
+設定は `apps/server/wrangler.jsonc` の `routes`。HTTP でのアクセスは Worker 側で
+HTTPS へ 301 リダイレクトする(ゾーン設定に依存しない)。

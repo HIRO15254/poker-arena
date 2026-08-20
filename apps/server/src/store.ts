@@ -63,6 +63,7 @@ export interface PlayRow {
   opponent: string;
   opponent_name: string | null;
   seed: number;
+  deck: string | null;
   hand_number: number;
   hero_actions: string;
   total_hands: number;

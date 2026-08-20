@@ -161,7 +161,7 @@ export interface HealthResponse {
 export interface MeResponse {
   id: string;
   name: string;
-  apiKey: string;
+  /** apiKey はサーバーがハッシュしか保持しないため返らない。発行時の値をクライアントが保持する */
   botLimit: number;
 }
 

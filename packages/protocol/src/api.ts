@@ -180,9 +180,11 @@ export interface DeployVersionRequest {
 }
 
 export interface TestMatchRequest {
+  /** 自分の bot。現在は kind=builtin のみ対応 */
   botId: string;
-  /** 対戦相手。builtin 名 or 自分の botId */
+  /** 対戦相手。組み込み戦略名(GET /api/builtins) */
   opponent: string;
+  /** 1〜2000 に丸められる */
   hands: number;
   seed?: number;
 }
@@ -190,7 +192,7 @@ export interface TestMatchRequest {
 export interface TestMatchResponse {
   hands: number;
   results: { id: string; netChips: number; bb100: number }[];
-  /** 直近ハンドの id(リプレイ用) */
+  /** リプレイ用のハンド id。テストマッチは履歴を保存しないため現在は常に空 */
   sampleHandIds: string[];
   durationMs: number;
 }

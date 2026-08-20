@@ -18,8 +18,7 @@
       "database_id": "7f240d05-5459-4482-8b2c-7f6a33491f7e"
     }
   ],
-  // 希望ドメイン。hiro15254.dev を Cloudflare のゾーンとして追加したら、この2行を有効にして deploy する
-  // "routes": [{ "pattern": "vcode-poker-arena.hiro15254.dev", "custom_domain": true }],
+  "routes": [{ "pattern": "vcode-poker-arena.hiro15254.com", "custom_domain": true }],
   "triggers": { "crons": ["* * * * *"] },
   "observability": { "enabled": true }
 }

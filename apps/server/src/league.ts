@@ -1,9 +1,15 @@
 import { CHIPS_PER_BB, type SeasonConfig } from "@poker-arena/protocol";
-import { playHand, type Agent, type HandConfig, type HandResult } from "@poker-arena/engine";
+import {
+  playHand,
+  type Agent,
+  type HandConfig,
+  type HandResult,
+} from "@poker-arena/engine";
 import type { Env } from "./env.js";
 import { builtinAgent, webhookAgent, type WebhookOutcome } from "./agents.js";
 import { listActiveBots, type BotRow, type StoredSeat } from "./store.js";
-import { mixSeed, newId, newSecret, nowIso } from "./util.js";
+import { newId, newSecret, nowIso } from "./util.js";
+import { secureDeck, secureSeed } from "./shuffle.js";
 
 const WEBHOOK_TIMEOUT_MS = 5000;
 /** 連続失敗がこの回数に達した bot は自動離席する(SPEC §5) */
@@ -29,22 +35,34 @@ interface StatDelta {
 
 function emptyDelta(): StatDelta {
   return {
-    hands: 0, net: 0, sumSqBb: 0, vpip: 0, pfr: 0,
-    showdown: 0, wonShowdown: 0, btnHands: 0, btnNet: 0, bbHands: 0, bbNet: 0,
+    hands: 0,
+    net: 0,
+    sumSqBb: 0,
+    vpip: 0,
+    pfr: 0,
+    showdown: 0,
+    wonShowdown: 0,
+    btnHands: 0,
+    btnNet: 0,
+    bbHands: 0,
+    bbNet: 0,
   };
 }
 
 /** システム所有の組み込み bot を用意する(初回のみ) */
 export async function ensureBuiltins(env: Env): Promise<void> {
-  const existing = await env.DB.prepare("SELECT COUNT(*) AS n FROM bots WHERE kind = 'builtin'")
-    .first<{ n: number }>();
+  const existing = await env.DB.prepare(
+    "SELECT COUNT(*) AS n FROM bots WHERE kind = 'builtin'",
+  ).first<{ n: number }>();
   if ((existing?.n ?? 0) > 0) return;
 
   const at = nowIso();
   const systemId = "usr_system";
   await env.DB.prepare(
     "INSERT OR IGNORE INTO users (id, name, api_key_hash, created_at) VALUES (?, ?, ?, ?)",
-  ).bind(systemId, "arena", `system-${systemId}`, at).run();
+  )
+    .bind(systemId, "arena", `system-${systemId}`, at)
+    .run();
 
   const presets: { name: string; strategy: string }[] = [
     { name: "house-tight", strategy: "tight" },
@@ -66,13 +84,23 @@ export async function ensureBuiltins(env: Env): Promise<void> {
 
 function agentFor(bot: BotRow, seed: number, outcome: WebhookOutcome): Agent {
   if (bot.kind === "webhook" && bot.webhook_url) {
-    return webhookAgent(bot.webhook_url, bot.secret, WEBHOOK_TIMEOUT_MS, outcome);
+    return webhookAgent(
+      bot.webhook_url,
+      bot.secret,
+      WEBHOOK_TIMEOUT_MS,
+      outcome,
+    );
   }
   return builtinAgent(bot.builtin_strategy ?? "call", seed);
 }
 
 /** ハンド結果から1 bot 分の統計を積む */
-function accumulate(delta: StatDelta, result: HandResult, seat: number, isButton: boolean): void {
+function accumulate(
+  delta: StatDelta,
+  result: HandResult,
+  seat: number,
+  isButton: boolean,
+): void {
   const seatResult = result.seats[seat];
   if (!seatResult) return;
   const net = seatResult.net;
@@ -88,12 +116,18 @@ function accumulate(delta: StatDelta, result: HandResult, seat: number, isButton
     delta.bbNet += net;
   }
   const preflop = result.events.filter(
-    (e) => e.type === "action" && e.record.seat === seat && e.record.street === "preflop",
+    (e) =>
+      e.type === "action" &&
+      e.record.seat === seat &&
+      e.record.street === "preflop",
   );
   const voluntary = preflop.some(
-    (e) => e.type === "action" && ["call", "bet", "raise"].includes(e.record.action),
+    (e) =>
+      e.type === "action" && ["call", "bet", "raise"].includes(e.record.action),
   );
-  const raised = preflop.some((e) => e.type === "action" && e.record.action === "raise");
+  const raised = preflop.some(
+    (e) => e.type === "action" && e.record.action === "raise",
+  );
   if (voluntary) delta.vpip++;
   if (raised) delta.pfr++;
   if (seatResult.showedDown) {
@@ -111,6 +145,8 @@ export interface BatchReport {
   pairsPlayed: number;
   elapsedMs: number;
   deactivated: string[];
+  /** バッチ途中で捕捉した想定外のエラー */
+  error?: string;
 }
 
 /**
@@ -124,7 +160,12 @@ export async function runLeagueBatch(
 ): Promise<BatchReport> {
   const started = Date.now();
   const bots = await listActiveBots(env.DB);
-  const report: BatchReport = { handsPlayed: 0, pairsPlayed: 0, elapsedMs: 0, deactivated: [] };
+  const report: BatchReport = {
+    handsPlayed: 0,
+    pairsPlayed: 0,
+    elapsedMs: 0,
+    deactivated: [],
+  };
   if (bots.length < 2) {
     report.elapsedMs = Date.now() - started;
     return report;
@@ -132,10 +173,17 @@ export async function runLeagueBatch(
 
   const deltas = new Map<string, StatDelta>();
   const handRows: {
-    id: string; tableId: string; handNumber: number; button: number;
-    result: HandResult; seats: StoredSeat[];
+    id: string;
+    tableId: string;
+    handNumber: number;
+    button: number;
+    result: HandResult;
+    seats: StoredSeat[];
   }[] = [];
-  const tableUpdates = new Map<string, { botA: string; botB: string; handNumber: number; lastHandId: string }>();
+  const tableUpdates = new Map<
+    string,
+    { botA: string; botB: string; handNumber: number; lastHandId: string }
+  >();
   const failures = new Map<string, WebhookOutcome>();
 
   // 総当たりのペアを作り、tick ごとに開始位置をずらして偏りを防ぐ
@@ -151,72 +199,103 @@ export async function runLeagueBatch(
   const offset = Math.floor(Date.now() / 60000) % Math.max(1, pairs.length);
   const ordered = [...pairs.slice(offset), ...pairs.slice(0, offset)];
 
-  for (const [a, b] of ordered) {
-    if (Date.now() - started > budgetMs) break;
-    const hasWebhook = a.kind === "webhook" || b.kind === "webhook";
-    const handsThisPair = hasWebhook ? 12 : 120;
-    const tableId = pairKey(a.id, b.id);
-    const existing = await env.DB.prepare("SELECT hand_number FROM tables WHERE id = ?")
-      .bind(tableId)
-      .first<{ hand_number: number }>();
-    let handNumber = existing?.hand_number ?? 0;
-
-    const outcomeA: WebhookOutcome = failures.get(a.id) ?? { failures: a.consecutive_failures, lastError: null };
-    const outcomeB: WebhookOutcome = failures.get(b.id) ?? { failures: b.consecutive_failures, lastError: null };
-    failures.set(a.id, outcomeA);
-    failures.set(b.id, outcomeB);
-
-    for (let h = 0; h < handsThisPair; h++) {
+  // ループ全体を保護する。1ペアの想定外の例外でバッチ全体が persist に到達しないと、
+  // その tick で積み上げた全ユーザーのハンドと統計が失われ、cron が毎分同じ失敗を繰り返す。
+  try {
+    for (const [a, b] of ordered) {
       if (Date.now() - started > budgetMs) break;
-      handNumber++;
-      const button = handNumber % 2; // 0 → a がボタン(=SB)
-      const seed = mixSeed(handNumber, Date.now() & 0xffff);
-      const handId = newId("h");
-      const config: HandConfig = {
-        handId,
-        seats: [
-          { id: a.id, stack: season.startingStackBb * CHIPS_PER_BB },
-          { id: b.id, stack: season.startingStackBb * CHIPS_PER_BB },
-        ],
-        button,
-        smallBlind: season.smallBlind,
-        bigBlind: season.bigBlind,
-        rake: season.rake,
-        seed,
+      const hasWebhook = a.kind === "webhook" || b.kind === "webhook";
+      const handsThisPair = hasWebhook ? 12 : 120;
+      const tableId = pairKey(a.id, b.id);
+      const existing = await env.DB.prepare(
+        "SELECT hand_number FROM tables WHERE id = ?",
+      )
+        .bind(tableId)
+        .first<{ hand_number: number }>();
+      let handNumber = existing?.hand_number ?? 0;
+
+      const outcomeA: WebhookOutcome = failures.get(a.id) ?? {
+        failures: a.consecutive_failures,
+        lastError: null,
       };
-      const agents = [agentFor(a, seed, outcomeA), agentFor(b, seed + 1, outcomeB)];
-      let result: HandResult;
-      try {
-        result = await playHand(config, agents);
-      } catch {
-        break; // このペアは諦めて次へ
-      }
-      report.handsPlayed++;
+      const outcomeB: WebhookOutcome = failures.get(b.id) ?? {
+        failures: b.consecutive_failures,
+        lastError: null,
+      };
+      failures.set(a.id, outcomeA);
+      failures.set(b.id, outcomeB);
 
-      for (const [idx, bot] of [a, b].entries()) {
-        const delta = deltas.get(bot.id) ?? emptyDelta();
-        accumulate(delta, result, idx, button === idx);
-        deltas.set(bot.id, delta);
-      }
+      for (let h = 0; h < handsThisPair; h++) {
+        if (Date.now() - started > budgetMs) break;
+        handNumber++;
+        const button = handNumber % 2; // 0 → a がボタン(=SB)
+        const seed = secureSeed(); // bot の内部乱数用。デッキとは無関係
+        const handId = newId("h");
+        const config: HandConfig = {
+          handId,
+          seats: [
+            { id: a.id, stack: season.startingStackBb * CHIPS_PER_BB },
+            { id: b.id, stack: season.startingStackBb * CHIPS_PER_BB },
+          ],
+          button,
+          smallBlind: season.smallBlind,
+          bigBlind: season.bigBlind,
+          rake: season.rake,
+          deck: secureDeck(),
+        };
+        // エージェント構築も失敗しうる(不正な戦略名が保存されている等)。
+        // ここで throw させるとバッチ全体が persist に到達せず、リーグが止まる。
+        let result: HandResult;
+        try {
+          const agents = [
+            agentFor(a, seed, outcomeA),
+            agentFor(b, seed + 1, outcomeB),
+          ];
+          result = await playHand(config, agents);
+        } catch {
+          break; // このペアは諦めて次へ
+        }
+        report.handsPlayed++;
 
-      // 履歴保存: webhook bot が絡むハンドは全件、組み込み同士は間引く
-      const keep = hasWebhook || handNumber % 10 === 0;
-      if (keep) {
-        const seats: StoredSeat[] = [a, b].map((bot, idx) => ({
-          seat: idx,
-          botId: bot.id,
-          botName: bot.name,
-          ownerName: bot.owner_id === "usr_system" ? "arena" : bot.owner_id,
-          startingStack: season.startingStackBb * CHIPS_PER_BB,
-          holeCards: result.seats[idx]?.holeCards ?? [],
-          net: result.seats[idx]?.net ?? 0,
-          showedDown: result.seats[idx]?.showedDown ?? false,
-        }));
-        handRows.push({ id: handId, tableId, handNumber, button, result, seats });
+        for (const [idx, bot] of [a, b].entries()) {
+          const delta = deltas.get(bot.id) ?? emptyDelta();
+          accumulate(delta, result, idx, button === idx);
+          deltas.set(bot.id, delta);
+        }
+
+        // 履歴保存: webhook bot が絡むハンドは全件、組み込み同士は間引く
+        const keep = hasWebhook || handNumber % 10 === 0;
+        if (keep) {
+          const seats: StoredSeat[] = [a, b].map((bot, idx) => ({
+            seat: idx,
+            botId: bot.id,
+            botName: bot.name,
+            ownerName: bot.owner_id === "usr_system" ? "arena" : bot.owner_id,
+            startingStack: season.startingStackBb * CHIPS_PER_BB,
+            holeCards: result.seats[idx]?.holeCards ?? [],
+            net: result.seats[idx]?.net ?? 0,
+            showedDown: result.seats[idx]?.showedDown ?? false,
+          }));
+          handRows.push({
+            id: handId,
+            tableId,
+            handNumber,
+            button,
+            result,
+            seats,
+          });
+        }
+        tableUpdates.set(tableId, {
+          botA: a.id,
+          botB: b.id,
+          handNumber,
+          lastHandId: handId,
+        });
       }
-      tableUpdates.set(tableId, { botA: a.id, botB: b.id, handNumber, lastHandId: handId });
+      report.pairsPlayed++;
     }
-    report.pairsPlayed++;
+  } catch (err) {
+    report.error = err instanceof Error ? err.message : String(err);
   }
 
   await persist(env, season, deltas, handRows, tableUpdates, failures, report);
@@ -228,8 +307,18 @@ async function persist(
   env: Env,
   season: SeasonConfig,
   deltas: Map<string, StatDelta>,
-  handRows: { id: string; tableId: string; handNumber: number; button: number; result: HandResult; seats: StoredSeat[] }[],
-  tableUpdates: Map<string, { botA: string; botB: string; handNumber: number; lastHandId: string }>,
+  handRows: {
+    id: string;
+    tableId: string;
+    handNumber: number;
+    button: number;
+    result: HandResult;
+    seats: StoredSeat[];
+  }[],
+  tableUpdates: Map<
+    string,
+    { botA: string; botB: string; handNumber: number; lastHandId: string }
+  >,
   failures: Map<string, WebhookOutcome>,
   report: BatchReport,
 ): Promise<void> {
@@ -237,7 +326,9 @@ async function persist(
   const stmts: D1PreparedStatement[] = [];
 
   for (const [botId, d] of deltas) {
-    const bot = await env.DB.prepare("SELECT version FROM bots WHERE id = ?").bind(botId).first<{ version: number }>();
+    const bot = await env.DB.prepare("SELECT version FROM bots WHERE id = ?")
+      .bind(botId)
+      .first<{ version: number }>();
     const version = bot?.version ?? 1;
     stmts.push(
       env.DB.prepare(
@@ -258,8 +349,21 @@ async function persist(
             bb_net = bb_net + excluded.bb_net,
             updated_at = excluded.updated_at`,
       ).bind(
-        season.id, botId, version, d.hands, d.net, d.sumSqBb,
-        d.vpip, d.pfr, d.showdown, d.wonShowdown, d.btnHands, d.btnNet, d.bbHands, d.bbNet, at,
+        season.id,
+        botId,
+        version,
+        d.hands,
+        d.net,
+        d.sumSqBb,
+        d.vpip,
+        d.pfr,
+        d.showdown,
+        d.wonShowdown,
+        d.btnHands,
+        d.btnNet,
+        d.bbHands,
+        d.bbNet,
+        at,
       ),
     );
   }
@@ -271,11 +375,23 @@ async function persist(
           (id, season_id, table_id, hand_number, played_at, button, small_blind, big_blind, board, pot, rake, seats, actions)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
-        row.id, season.id, row.tableId, row.handNumber, at, row.button,
-        season.smallBlind, season.bigBlind,
-        JSON.stringify(row.result.board), row.result.totalPot, row.result.rake,
+        row.id,
+        season.id,
+        row.tableId,
+        row.handNumber,
+        at,
+        row.button,
+        season.smallBlind,
+        season.bigBlind,
+        JSON.stringify(row.result.board),
+        row.result.totalPot,
+        row.result.rake,
         JSON.stringify(row.seats),
-        JSON.stringify(row.result.events.filter((e) => e.type === "action").map((e) => (e as { record: unknown }).record)),
+        JSON.stringify(
+          row.result.events
+            .filter((e) => e.type === "action")
+            .map((e) => (e as { record: unknown }).record),
+        ),
       ),
     );
     for (const seat of row.seats) {
@@ -283,7 +399,14 @@ async function persist(
         env.DB.prepare(
           `INSERT OR IGNORE INTO hand_seats (hand_id, bot_id, seat, net, showdown, played_at)
            VALUES (?, ?, ?, ?, ?, ?)`,
-        ).bind(row.id, seat.botId, seat.seat, seat.net, seat.showedDown ? 1 : 0, at),
+        ).bind(
+          row.id,
+          seat.botId,
+          seat.seat,
+          seat.net,
+          seat.showedDown ? 1 : 0,
+          at,
+        ),
       );
     }
   }
@@ -297,7 +420,15 @@ async function persist(
            hand_number = excluded.hand_number,
            last_hand_id = excluded.last_hand_id,
            updated_at = excluded.updated_at`,
-      ).bind(tableId, season.id, t.botA, t.botB, t.handNumber, t.lastHandId, at),
+      ).bind(
+        tableId,
+        season.id,
+        t.botA,
+        t.botB,
+        t.handNumber,
+        t.lastHandId,
+        at,
+      ),
     );
   }
 
@@ -308,7 +439,13 @@ async function persist(
         env.DB.prepare(
           `UPDATE bots SET status = 'error', consecutive_failures = ?, last_error = ?, last_error_at = ?, updated_at = ?
            WHERE id = ? AND kind = 'webhook'`,
-        ).bind(outcome.failures, outcome.lastError ?? "連続タイムアウト", at, at, botId),
+        ).bind(
+          outcome.failures,
+          outcome.lastError ?? "連続タイムアウト",
+          at,
+          at,
+          botId,
+        ),
       );
     } else {
       stmts.push(
@@ -346,7 +483,9 @@ async function persist(
        )`,
     ).bind(HAND_RETENTION),
     // 2) 本体を失った hand_seats の孤児
-    env.DB.prepare("DELETE FROM hand_seats WHERE hand_id NOT IN (SELECT id FROM hands)"),
+    env.DB.prepare(
+      "DELETE FROM hand_seats WHERE hand_id NOT IN (SELECT id FROM hands)",
+    ),
     // 3) bb/100 推移は bot ごとに直近 TIMELINE_RETENTION 点だけ残す
     env.DB.prepare(
       `DELETE FROM stat_timeline WHERE rowid IN (

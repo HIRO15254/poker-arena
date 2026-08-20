@@ -17,6 +17,7 @@ Stdlib only, Python 3.11+.
 """
 
 from .bot import Bot, BotLike, Request, as_callable
+from .client import ArenaClient, ArenaError
 from .cards import (
     CATEGORY_NAMES,
     DECK,
@@ -75,6 +76,8 @@ __version__ = "0.1.0"
 __all__ = [
     "__version__",
     # bot
+    "ArenaClient",
+    "ArenaError",
     "Bot",
     "BotLike",
     "Request",

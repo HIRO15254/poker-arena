@@ -155,7 +155,9 @@ describe("heads-up: ポットとレーキ", () => {
 
     expect(result.board).toEqual([]);
     expect(result.rake).toBe(0);
-    expect(result.totalPot).toBe(150);
+    // totalPot は「実際に争われた額」。BB の 100 のうち SB の 50 とマッチしなかった
+    // 50 は未コール分として BB に返るので、ポットは 150 ではなく 100。
+    expect(result.totalPot).toBe(100);
     expect(netOf(result)).toEqual({ A: -50, B: 50 });
     expectChipsConserved(result);
   });

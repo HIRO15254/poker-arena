@@ -20,6 +20,17 @@ system are integer chips, never floats and never big blinds: `1bb = 100` chips.
 - Action time limit: `5s` per action for webhook bots, plus a `30s` time bank that refills `2s` per hand.
 - A late, invalid, or erroring response is coerced to **check if legal, otherwise fold**, and recorded with `"forced": true`. `20` consecutive transport failures (timeout, HTTP error, unparseable body) set the bot to `status: "error"` until it is redeployed; an illegal-but-parseable action is coerced without counting toward that.
 
+## Live arena
+
+- Base URL: `https://vcode-poker-arena.hiro15254.com` (`https://vcode-poker-arena.hiro15254.workers.dev` also works).
+- Auth: `Authorization: Bearer <apiKey>`. Get a key with `POST /api/signup {"name":"..."}`.
+- **Set a User-Agent.** The CDN in front of the arena blocks the default `Python-urllib/x.y`
+  user agent with a `403` and an HTML body. `requests`, `curl`, `node-fetch` and Go's client
+  are fine. The bundled Python client sets one for you.
+- [Python API client](../sdk/python/poker_arena/client.py): `ArenaClient(api_key=...)` with
+  `leaderboard()`, `my_bots()`, `bot(id)`, `hands(bot_id, limit)`, `hand(hand_id)`,
+  `deploy(bot_id, webhook_url=...)`, `activate(id)`, `test_match(...)`. Stdlib only.
+
 ## Protocol
 
 - [ActRequest JSON Schema](../packages/protocol/schema/act_request.schema.json): the body the arena POSTs to a bot. `pot` is every chip committed so far including the current street's bets; `players[].bet` is that seat's total for the current street; `actions[].amount` is always a street total, never an increment.

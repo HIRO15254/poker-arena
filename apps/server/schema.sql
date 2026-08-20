@@ -46,6 +46,15 @@ CREATE TABLE IF NOT EXISTS season_stats (
   PRIMARY KEY (season_id, bot_id, version)
 );
 
+-- デプロイ記録。成績が無いバージョンも残す(season_stats から導出すると未プレイ版が消える)
+CREATE TABLE IF NOT EXISTS bot_versions (
+  bot_id      TEXT NOT NULL,
+  version     INTEGER NOT NULL,
+  deployed_at TEXT NOT NULL,
+  note        TEXT,
+  PRIMARY KEY (bot_id, version)
+);
+
 -- bb/100 推移用のスナップショット
 CREATE TABLE IF NOT EXISTS stat_timeline (
   season_id  TEXT NOT NULL,
@@ -102,7 +111,8 @@ CREATE TABLE IF NOT EXISTS play_sessions (
   id            TEXT PRIMARY KEY,
   opponent      TEXT NOT NULL,          -- 組み込み戦略名(決定的再生に使う)
   opponent_name TEXT,                    -- 表示名(登録 bot を指定した場合はその bot 名)
-  seed          INTEGER NOT NULL,
+  seed          INTEGER NOT NULL,       -- bot の内部乱数用(デッキとは無関係)
+  deck          TEXT,                   -- そのハンドの配り札。CSPRNG 生成でサーバー内にのみ存在
   hand_number   INTEGER NOT NULL DEFAULT 1,
   hero_actions  TEXT NOT NULL DEFAULT '[]',
   total_hands   INTEGER NOT NULL DEFAULT 0,

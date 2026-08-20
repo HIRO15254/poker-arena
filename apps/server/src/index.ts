@@ -18,6 +18,7 @@ import { currentSeason } from "./season.js";
 import { BUILTIN_STRATEGIES, builtinAgent, isBuiltinStrategy } from "./agents.js";
 import { ensureBuiltins, runLeagueBatch } from "./league.js";
 import { buildSession, buttonForHand, validateAction } from "./play.js";
+import { secureDeck, secureSeed } from "./shuffle.js";
 import {
   getBot, getStats, getUserByApiKeyHash, listBotsByOwner,
   type BotRow, type PlayRow, type StoredSeat,
@@ -29,8 +30,40 @@ const app = new Hono<{ Bindings: Env; Variables: Vars }>();
 
 app.use("/api/*", cors());
 
-const fail = (status: 400 | 401 | 403 | 404 | 409 | 429, error: string, message: string) =>
+const fail = (status: 400 | 401 | 403 | 404 | 429 | 409, error: string, message: string) =>
   Response.json({ error, message }, { status });
+
+/**
+ * webhook の登録先として許可できる URL か。
+ * https のみ。内部・ループバック・リンクローカルは SSRF になるので弾く。
+ */
+export function isSafeWebhookUrl(raw: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:") return false;
+  const host = url.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return false;
+  // IPv6 リテラル(ループバック・ユニークローカル・リンクローカル)
+  if (host.startsWith("[")) {
+    const inner = host.slice(1, -1);
+    if (inner === "::1" || inner.startsWith("fc") || inner.startsWith("fd") || inner.startsWith("fe80")) return false;
+    return true;
+  }
+  const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if (a === 127 || a === 10 || a === 0) return false;              // ループバック / プライベート
+    if (a === 172 && b >= 16 && b <= 31) return false;               // プライベート
+    if (a === 192 && b === 168) return false;                        // プライベート
+    if (a === 169 && b === 254) return false;                        // リンクローカル(メタデータ)
+    if (a >= 224) return false;                                      // マルチキャスト以上
+  }
+  return true;
+}
 
 async function requireUser(c: { req: { header: (k: string) => string | undefined }; env: Env }) {
   const header = c.req.header("authorization") ?? "";
@@ -151,18 +184,26 @@ async function botToDetail(env: Env, row: BotRow, ownerName: string, includePriv
     net_chips: stats?.net_chips ?? 0,
     sum_sq_bb: stats?.sum_sq_bb ?? 0,
   });
+  // デプロイ記録が正。成績はシーズンごとの集計を左外部結合する
+  // (season_stats だけから作ると、まだ1ハンドも打っていないバージョンが履歴から消える)
   const versionsRes = await env.DB.prepare(
-    "SELECT version, hands, net_chips, updated_at FROM season_stats WHERE season_id = ? AND bot_id = ? ORDER BY version DESC",
-  ).bind(season.id, row.id).all<{ version: number; hands: number; net_chips: number; updated_at: string }>();
+    `SELECT v.version, v.deployed_at, v.note,
+            COALESCE(s.hands, 0) AS hands, COALESCE(s.net_chips, 0) AS net_chips
+     FROM bot_versions v
+     LEFT JOIN season_stats s
+       ON s.bot_id = v.bot_id AND s.version = v.version AND s.season_id = ?
+     WHERE v.bot_id = ? ORDER BY v.version DESC`,
+  ).bind(season.id, row.id).all<{ version: number; deployed_at: string; note: string | null; hands: number; net_chips: number }>();
 
   const detail: BotDetail = {
     ...summary,
     versions: (versionsRes.results ?? []).map((v) => ({
       version: v.version,
-      deployedAt: v.updated_at,
+      deployedAt: v.deployed_at,
       hands: v.hands,
       netChips: v.net_chips,
       bb100: v.hands > 0 ? (v.net_chips / CHIPS_PER_BB / v.hands) * 100 : 0,
+      ...(v.note ? { note: v.note } : {}),
     })),
   };
   if (includePrivate) {
@@ -226,8 +267,8 @@ app.post("/api/bots", auth, async (c) => {
   }
   const kind = body.kind === "builtin" ? "builtin" : "webhook";
   if (kind === "webhook") {
-    if (!body.webhookUrl || !/^https:\/\//.test(body.webhookUrl)) {
-      return fail(400, "invalid_request", "webhookUrl は https:// で始まる URL が必要です");
+    if (!body.webhookUrl || !isSafeWebhookUrl(body.webhookUrl)) {
+      return fail(400, "invalid_request", "webhookUrl は公開ホストの https:// URL が必要です");
     }
   } else if (!body.builtinStrategy || !isBuiltinStrategy(body.builtinStrategy)) {
     return fail(400, "invalid_request", `builtinStrategy は ${BUILTIN_STRATEGIES.join(" / ")} のいずれか`);
@@ -247,6 +288,9 @@ app.post("/api/bots", auth, async (c) => {
     `INSERT INTO bots (id, owner_id, name, kind, webhook_url, builtin_strategy, secret, status, version, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, 'idle', 1, ?, ?)`,
   ).bind(id, c.get("userId"), name, kind, body.webhookUrl ?? null, body.builtinStrategy ?? null, secret, at, at).run();
+  await c.env.DB.prepare(
+    "INSERT OR IGNORE INTO bot_versions (bot_id, version, deployed_at) VALUES (?, 1, ?)",
+  ).bind(id, at).run();
 
   const row = await getBot(c.env.DB, id);
   const detail = await botToDetail(c.env, row!, c.get("userName"), true);
@@ -274,13 +318,26 @@ app.post("/api/bots/:id/versions", auth, async (c) => {
   if (row instanceof Response) return row;
   const body = await c.req.json<{ webhookUrl?: string; builtinStrategy?: string; note?: string }>()
     .catch(() => ({}) as { webhookUrl?: string; builtinStrategy?: string; note?: string });
+
+  // 作成時と同じ検証をここでも行う。未検証だと不正な戦略名が保存され、
+  // リーグの cron がその bot でエージェント構築に失敗して毎分止まる。
+  if (body.builtinStrategy !== undefined && !isBuiltinStrategy(body.builtinStrategy)) {
+    return fail(400, "invalid_request", `builtinStrategy は ${BUILTIN_STRATEGIES.join(" / ")} のいずれか`);
+  }
+  if (body.webhookUrl !== undefined && !isSafeWebhookUrl(body.webhookUrl)) {
+    return fail(400, "invalid_request", "webhookUrl は公開ホストの https:// URL が必要です");
+  }
   const at = nowIso();
   await c.env.DB.prepare(
     `UPDATE bots SET version = version + 1, webhook_url = COALESCE(?, webhook_url),
        builtin_strategy = COALESCE(?, builtin_strategy), consecutive_failures = 0,
        last_error = NULL, last_error_at = NULL, updated_at = ? WHERE id = ?`,
   ).bind(body.webhookUrl ?? null, body.builtinStrategy ?? null, at, row.id).run();
-  const updated = await getBot(c.env.DB, row.id);
+  const bumped = await getBot(c.env.DB, row.id);
+  await c.env.DB.prepare(
+    "INSERT OR IGNORE INTO bot_versions (bot_id, version, deployed_at, note) VALUES (?, ?, ?, ?)",
+  ).bind(row.id, bumped?.version ?? row.version + 1, at, body.note ?? null).run();
+  const updated = bumped;
   return c.json(await botToDetail(c.env, updated!, c.get("userName"), true));
 });
 
@@ -544,11 +601,11 @@ app.post("/api/play", async (c) => {
 
   const id = newId("play");
   const at = nowIso();
-  const seed = Math.floor(Math.random() * 2 ** 31);
+  const seed = secureSeed(); // bot の内部乱数用
   await c.env.DB.prepare(
-    `INSERT INTO play_sessions (id, opponent, opponent_name, seed, hand_number, hero_actions, total_hands, total_net, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 1, '[]', 0, 0, ?, ?)`,
-  ).bind(id, strategy, label, seed, at, at).run();
+    `INSERT INTO play_sessions (id, opponent, opponent_name, seed, deck, hand_number, hero_actions, total_hands, total_net, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 1, '[]', 0, 0, ?, ?)`,
+  ).bind(id, strategy, label, seed, JSON.stringify(secureDeck()), at, at).run();
   const row = await c.env.DB.prepare("SELECT * FROM play_sessions WHERE id = ?").bind(id).first<PlayRow>();
   const { session } = await buildSession(row!, currentSeason());
   return c.json(session);
@@ -596,8 +653,8 @@ app.post("/api/play/:id/next", async (c) => {
   const at = nowIso();
   await c.env.DB.prepare(
     `UPDATE play_sessions SET hand_number = hand_number + 1, hero_actions = '[]',
-       total_hands = total_hands + 1, total_net = total_net + ?, updated_at = ? WHERE id = ?`,
-  ).bind(net, at, row.id).run();
+       deck = ?, total_hands = total_hands + 1, total_net = total_net + ?, updated_at = ? WHERE id = ?`,
+  ).bind(JSON.stringify(secureDeck()), net, at, row.id).run();
   const updated = await c.env.DB.prepare("SELECT * FROM play_sessions WHERE id = ?").bind(row.id).first<PlayRow>();
   const { session } = await buildSession(updated!, season);
   return c.json(session);
@@ -608,7 +665,16 @@ app.post("/api/play/:id/next", async (c) => {
 app.all("/api/*", () => fail(404, "not_found", "そのエンドポイントはありません"));
 
 export default {
-  fetch: app.fetch,
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // API キーを平文で送らせないため、HTTP は HTTPS へ恒久リダイレクトする。
+    // ゾーン設定の "Always Use HTTPS" に依存せずアプリ側で保証する。
+    const url = new URL(request.url);
+    if (url.protocol === "http:") {
+      url.protocol = "https:";
+      return Response.redirect(url.toString(), 301);
+    }
+    return app.fetch(request, env, ctx);
+  },
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(
       (async () => {

@@ -28,7 +28,7 @@
 | WS | `/api/tables/:id/watch` | – | `TableWatchEvent` を配信 |
 | GET | `/api/hands?botId=&limit=&cursor=&minNet=&maxNet=&showdown=` | 要 | `{ hands: HandSummary[], nextCursor: string \| null }` |
 | GET | `/api/hands/:handId` | 要 | `HandDetail`(自分視点) |
-| POST | `/api/test-match` | 要 | `TestMatchRequest` → `TestMatchResponse`。レーティング非反映 |
+| POST | `/api/test-match` | 要 | `TestMatchRequest` → `TestMatchResponse`。レーティング非反映。現在は kind=builtin の bot のみ、相手は組み込み戦略のみ、ハンド数は 2000 まで。履歴は保存しないので `sampleHandIds` は空 |
 | GET | `/api/me` | 要 | `{ id, name, botLimit }`。apiKey はハッシュ保存のため返らない |
 
 ### エラー

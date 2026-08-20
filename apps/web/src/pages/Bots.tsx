@@ -871,7 +871,8 @@ export function BotsPage() {
       ) : detail.data ? (
         <BotDetailPane
           bot={detail.data}
-          accountKey={me.data?.apiKey ?? getApiKey()}
+          // API キーはサーバーから取得できない(ハッシュのみ保持)。発行時に保存したものを使う
+          accountKey={getApiKey()}
           onChanged={(bot) => {
             detail.setData(bot);
             bots.reload();
