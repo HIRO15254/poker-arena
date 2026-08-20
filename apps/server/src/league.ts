@@ -10,6 +10,8 @@ const WEBHOOK_TIMEOUT_MS = 5000;
 const AUTO_ERROR_THRESHOLD = 20;
 /** 保存するハンド履歴の上限。超過分は古い順に削除 */
 const HAND_RETENTION = 20000;
+/** bb/100 推移の保持点数(bot・バージョンごと)。API が返す上限と揃える */
+const TIMELINE_RETENTION = 200;
 
 interface StatDelta {
   hands: number;
@@ -46,6 +48,8 @@ export async function ensureBuiltins(env: Env): Promise<void> {
 
   const presets: { name: string; strategy: string }[] = [
     { name: "house-tight", strategy: "tight" },
+    { name: "house-balanced", strategy: "balanced" },
+    { name: "house-lag", strategy: "lag" },
     { name: "house-aggro", strategy: "aggro" },
     { name: "house-call", strategy: "call" },
     { name: "house-random", strategy: "random" },
@@ -332,10 +336,26 @@ async function persist(
     await env.DB.batch(stmts.slice(i, i + 50));
   }
 
-  // 古いハンドを間引く
-  await env.DB.prepare(
-    `DELETE FROM hands WHERE id IN (
-       SELECT id FROM hands ORDER BY played_at DESC LIMIT -1 OFFSET ?
-     )`,
-  ).bind(HAND_RETENTION).run();
+  // 保持上限を超えた古いデータを間引く。
+  // cron は毎分回るので、放置すると hand_seats と stat_timeline が無限に増える。
+  await env.DB.batch([
+    // 1) 古いハンド本体
+    env.DB.prepare(
+      `DELETE FROM hands WHERE id IN (
+         SELECT id FROM hands ORDER BY played_at DESC LIMIT -1 OFFSET ?
+       )`,
+    ).bind(HAND_RETENTION),
+    // 2) 本体を失った hand_seats の孤児
+    env.DB.prepare("DELETE FROM hand_seats WHERE hand_id NOT IN (SELECT id FROM hands)"),
+    // 3) bb/100 推移は bot ごとに直近 TIMELINE_RETENTION 点だけ残す
+    env.DB.prepare(
+      `DELETE FROM stat_timeline WHERE rowid IN (
+         SELECT rowid FROM (
+           SELECT rowid,
+                  ROW_NUMBER() OVER (PARTITION BY season_id, bot_id, version ORDER BY hands DESC) AS rn
+           FROM stat_timeline
+         ) WHERE rn > ?
+       )`,
+    ).bind(TIMELINE_RETENTION),
+  ]);
 }
