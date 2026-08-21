@@ -6,7 +6,7 @@ import {
   type HandResult,
 } from "@poker-arena/engine";
 import type { Env } from "./env.js";
-import { builtinAgent, refillBank, webhookAgent, type TimeBank, type WebhookOutcome } from "./agents.js";
+import { builtinAgent, webhookAgent, type WebhookOutcome } from "./agents.js";
 import { listActiveBots, type BotRow, type StoredSeat } from "./store.js";
 import { newId, newSecret, nowIso } from "./util.js";
 import { secureDeck, secureSeed } from "./shuffle.js";
@@ -14,16 +14,23 @@ import { secureDeck, secureSeed } from "./shuffle.js";
 /** 保存するハンド履歴の上限。超過分は古い順に削除 */
 const HAND_RETENTION = 20000;
 /**
- * 1 tick・1ペアあたりのハンド数。
- * cron は毎分回るので、ここを上げると D1 の書き込みが一気に増える。
- * 8 bot(28ペア)× 12 ハンド ≒ 34万ハンド/日 で、1体あたり 1日 12万ハンド。
- * bb/100 の 95% 信頼区間は 1日で ±6 程度まで縮むので、これで十分。
+ * 1ラウンド・1ペアあたりのハンド数の上限。
+ * リーグは1時間に1ラウンド走り、持ち主が異なる bot 同士を総当たりさせる。
  */
-const HANDS_PER_PAIR = 12;
-/** webhook bot は往復があるので更に絞る */
-const HANDS_PER_PAIR_WEBHOOK = 6;
-/** bb/100 推移のスナップショットを取る間隔(tick 単位)。毎 tick 取ると行が無駄に増える */
-const TIMELINE_EVERY_N_TICKS = 10;
+const HANDS_PER_PAIR = 1000;
+/**
+ * 1ラウンドで1体が打つハンド数の上限。
+ * 参加者が増えるとペア数は二乗で増えるので、per-bot の上限で歯止めをかける。
+ * 対戦相手が 10 体(=参加 11 体)のとき、ちょうど 1000 ハンド × 10 = 10,000 になる。
+ */
+const HANDS_PER_BOT_PER_ROUND = 10_000;
+
+/** そのラウンドで1ペアが打つハンド数 */
+export function handsPerPair(opponentCount: number): number {
+  if (opponentCount <= 0) return 0;
+  return Math.max(1, Math.min(HANDS_PER_PAIR, Math.floor(HANDS_PER_BOT_PER_ROUND / opponentCount)));
+}
+
 /** bb/100 推移の保持点数(bot・バージョンごと)。API が返す上限と揃える */
 const TIMELINE_RETENTION = 200;
 
@@ -57,21 +64,13 @@ function emptyDelta(): StatDelta {
   };
 }
 
-/** システム所有の組み込み bot を用意する(初回のみ) */
+/**
+ * アリーナ所有の組み込み bot を用意する(初回のみ)。
+ *
+ * 「持ち主が異なる bot 同士だけ対戦させる」規則を例外なく適用するため、
+ * house bot も1体ずつ別オーナーとして登録する(表示名はどれも `arena`)。
+ */
 export async function ensureBuiltins(env: Env): Promise<void> {
-  const existing = await env.DB.prepare(
-    "SELECT COUNT(*) AS n FROM bots WHERE kind = 'builtin'",
-  ).first<{ n: number }>();
-  if ((existing?.n ?? 0) > 0) return;
-
-  const at = nowIso();
-  const systemId = "usr_system";
-  await env.DB.prepare(
-    "INSERT OR IGNORE INTO users (id, name, api_key_hash, created_at) VALUES (?, ?, ?, ?)",
-  )
-    .bind(systemId, "arena", `system-${systemId}`, at)
-    .run();
-
   const presets: { name: string; strategy: string }[] = [
     { name: "house-tight", strategy: "tight" },
     { name: "house-balanced", strategy: "balanced" },
@@ -81,12 +80,33 @@ export async function ensureBuiltins(env: Env): Promise<void> {
     { name: "house-random", strategy: "random" },
     { name: "house-rock", strategy: "fold" },
   ];
-  const stmts = presets.map((p) =>
-    env.DB.prepare(
-      `INSERT INTO bots (id, owner_id, name, kind, builtin_strategy, secret, status, version, created_at, updated_at)
-       VALUES (?, ?, ?, 'builtin', ?, ?, 'active', 1, ?, ?)`,
-    ).bind(newId("bot"), systemId, p.name, p.strategy, newSecret(), at, at),
-  );
+  const at = nowIso();
+
+  const existing = await env.DB.prepare("SELECT name FROM bots WHERE kind = 'builtin' AND owner_id LIKE 'usr_house_%'")
+    .all<{ name: string }>();
+  const have = new Set((existing.results ?? []).map((r) => r.name));
+  const missing = presets.filter((p) => !have.has(p.name));
+  if (missing.length === 0) return;
+
+  const stmts: D1PreparedStatement[] = [];
+  for (const preset of missing) {
+    const ownerId = `usr_house_${preset.strategy}`;
+    stmts.push(
+      env.DB.prepare("INSERT OR IGNORE INTO users (id, name, api_key_hash, created_at) VALUES (?, 'arena', ?, ?)")
+        .bind(ownerId, `system-${ownerId}`, at),
+    );
+    const botId = newId("bot");
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO bots (id, owner_id, name, kind, builtin_strategy, secret, status, version, created_at, updated_at)
+         VALUES (?, ?, ?, 'builtin', ?, ?, 'active', 1, ?, ?)`,
+      ).bind(botId, ownerId, preset.name, preset.strategy, newSecret(), at, at),
+    );
+    stmts.push(
+      env.DB.prepare("INSERT OR IGNORE INTO bot_versions (bot_id, version, deployed_at) VALUES (?, 1, ?)")
+        .bind(botId, at),
+    );
+  }
   await env.DB.batch(stmts);
 }
 
@@ -94,13 +114,12 @@ function agentFor(
   bot: BotRow,
   seed: number,
   outcome: WebhookOutcome,
-  bank: TimeBank,
   timing: SeasonConfig["timing"],
   webhookEnabled: boolean,
 ): Agent {
   if (bot.kind === "webhook" && bot.webhook_url) {
     if (!webhookEnabled) throw new Error("webhook bots are disabled");
-    return webhookAgent(bot.webhook_url, bot.secret, timing.baseMsWebhook, bank, outcome);
+    return webhookAgent(bot.webhook_url, bot.secret, timing.actionMs, outcome);
   }
   return builtinAgent(bot.builtin_strategy ?? "call", seed);
 }
@@ -200,21 +219,22 @@ export async function runLeagueBatch(
     { botA: string; botB: string; handNumber: number; lastHandId: string }
   >();
   const failures = new Map<string, WebhookOutcome>();
-  const banks = new Map<string, TimeBank>();
-  /** DB に入っていた元の残高。変化した bot だけ書き戻すため */
-  const bankBaseline = new Map<string, number>();
 
-  // 総当たりのペアを作り、tick ごとに開始位置をずらして偏りを防ぐ
+  // 持ち主が異なる bot 同士だけを総当たりで組む(コルージョン防止)。
+  // house bot もそれぞれ別オーナーとして登録してあるので、例外規則は要らない。
   const pairs: [BotRow, BotRow][] = [];
+  const opponents = new Map<string, number>();
   for (let i = 0; i < bots.length; i++) {
     for (let j = i + 1; j < bots.length; j++) {
       const a = bots[i]!;
       const b = bots[j]!;
-      if (a.owner_id === b.owner_id && a.owner_id !== "usr_system") continue; // 同一ユーザーは同卓しない
+      if (a.owner_id === b.owner_id) continue;
       pairs.push([a, b]);
+      opponents.set(a.id, (opponents.get(a.id) ?? 0) + 1);
+      opponents.set(b.id, (opponents.get(b.id) ?? 0) + 1);
     }
   }
-  const offset = Math.floor(Date.now() / 60000) % Math.max(1, pairs.length);
+  const offset = Math.floor(Date.now() / 3_600_000) % Math.max(1, pairs.length);
   const ordered = [...pairs.slice(offset), ...pairs.slice(0, offset)];
 
   // ループ全体を保護する。1ペアの想定外の例外でバッチ全体が persist に到達しないと、
@@ -223,7 +243,11 @@ export async function runLeagueBatch(
     for (const [a, b] of ordered) {
       if (Date.now() - started > budgetMs) break;
       const hasWebhook = a.kind === "webhook" || b.kind === "webhook";
-      const handsThisPair = hasWebhook ? HANDS_PER_PAIR_WEBHOOK : HANDS_PER_PAIR;
+      // 相手が多い側に合わせる(どちらかが上限に達しているなら少ない方に従う)
+      const handsThisPair = Math.min(
+        handsPerPair(opponents.get(a.id) ?? 1),
+        handsPerPair(opponents.get(b.id) ?? 1),
+      );
       const tableId = pairKey(a.id, b.id);
       const existing = await env.DB.prepare(
         "SELECT hand_number FROM tables WHERE id = ?",
@@ -243,20 +267,10 @@ export async function runLeagueBatch(
       failures.set(a.id, outcomeA);
       failures.set(b.id, outcomeB);
 
-      const bankA: TimeBank = banks.get(a.id) ?? { ms: a.time_bank_ms };
-      const bankB: TimeBank = banks.get(b.id) ?? { ms: b.time_bank_ms };
-      banks.set(a.id, bankA);
-      banks.set(b.id, bankB);
-      if (!bankBaseline.has(a.id)) bankBaseline.set(a.id, a.time_bank_ms);
-      if (!bankBaseline.has(b.id)) bankBaseline.set(b.id, b.time_bank_ms);
 
       for (let h = 0; h < handsThisPair; h++) {
         if (Date.now() - started > budgetMs) break;
         handNumber++;
-        // ハンド開始ごとにバンクを回復させる(上限あり)
-        for (const bank of [bankA, bankB]) {
-          refillBank(bank, season.timing.bankRefillPerHandMs, season.timing.bankCapMs);
-        }
         const button = handNumber % 2; // 0 → a がボタン(=SB)
         const seed = secureSeed(); // bot の内部乱数用。デッキとは無関係
         const handId = newId("h");
@@ -277,8 +291,8 @@ export async function runLeagueBatch(
         let result: HandResult;
         try {
           const agents = [
-            agentFor(a, seed, outcomeA, bankA, season.timing, season.webhookBotsEnabled),
-            agentFor(b, seed + 1, outcomeB, bankB, season.timing, season.webhookBotsEnabled),
+            agentFor(a, seed, outcomeA, season.timing, season.webhookBotsEnabled),
+            agentFor(b, seed + 1, outcomeB, season.timing, season.webhookBotsEnabled),
           ];
           result = await playHand(config, agents);
         } catch {
@@ -327,7 +341,7 @@ export async function runLeagueBatch(
     report.error = err instanceof Error ? err.message : String(err);
   }
 
-  await persist(env, season, deltas, handRows, tableUpdates, failures, banks, bankBaseline, report);
+  await persist(env, season, deltas, handRows, tableUpdates, failures, report);
   report.elapsedMs = Date.now() - started;
   return report;
 }
@@ -349,8 +363,6 @@ async function persist(
     { botA: string; botB: string; handNumber: number; lastHandId: string }
   >,
   failures: Map<string, WebhookOutcome>,
-  banks: Map<string, TimeBank>,
-  bankBaseline: Map<string, number>,
   report: BatchReport,
 ): Promise<void> {
   const at = nowIso();
@@ -487,19 +499,9 @@ async function persist(
     }
   }
 
-  // タイムバンクの残高を保存する(次の tick に持ち越す)。
-  // 組み込み bot は消費も回復もしないので、変化したものだけ書く。
-  for (const [botId, bank] of banks) {
-    const next = Math.max(0, Math.round(bank.ms));
-    if (next === bankBaseline.get(botId)) continue;
-    stmts.push(
-      env.DB.prepare("UPDATE bots SET time_bank_ms = ? WHERE id = ?").bind(next, botId),
-    );
-  }
 
-  // bb/100 推移のスナップショット(毎 tick は取らない)
-  const snapshotTick = Math.floor(Date.now() / 60000) % TIMELINE_EVERY_N_TICKS === 0;
-  for (const botId of snapshotTick ? deltas.keys() : []) {
+  // bb/100 推移のスナップショット(1時間に1ラウンドなので毎回取ってよい)
+  for (const botId of deltas.keys()) {
     stmts.push(
       env.DB.prepare(
         `INSERT INTO stat_timeline (season_id, bot_id, version, hands, bb100, at)

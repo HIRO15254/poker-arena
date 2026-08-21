@@ -1,0 +1,9 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "開発キット", "x": 0, "y": 0, "w": 1280, "h": 940 }
+  ],
+  "annotations": [
+    { "id": "brief", "x": 0, "y": -150, "w": 520, "text": "開発キットページ(新規画面)。bot を書きはじめるのに必要なもの — SDK 一式の zip、最初の5手順、提出時のコード長制限、AI エージェントに渡す索引 — を1画面にまとめる。\nルールとコード長の数値はすべて GET /api/season(season.upload を含む)の実データから描画するので、設定を変えたらページも追従する。\nサイドバーには「開発」グループの先頭として追加。" }
+  ],
+  "launch": { "view": "focused", "file": "Main.dc.html" }
+}

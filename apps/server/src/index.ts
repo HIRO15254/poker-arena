@@ -38,7 +38,7 @@ const fail = (status: 400 | 401 | 403 | 404 | 429 | 409, error: string, message:
  * false の間もサイトは通常どおり動く — リーダーボードの閲覧、人間 vs bot のプレイ、
  * API はすべて生きていて、止まるのは新しいハンドが積まれることだけ。
  */
-const LEAGUE_ENABLED = false;
+const LEAGUE_ENABLED = true;
 
 const WEBHOOK_DISABLED_MESSAGE =
   "現在 webhook 型 bot は受け付けていません。組み込み戦略 (kind: \"builtin\") で登録してください";
@@ -349,8 +349,8 @@ app.post("/api/bots/:id/versions", auth, async (c) => {
   await c.env.DB.prepare(
     `UPDATE bots SET version = version + 1, webhook_url = COALESCE(?, webhook_url),
        builtin_strategy = COALESCE(?, builtin_strategy), consecutive_failures = 0,
-       time_bank_ms = ?, last_error = NULL, last_error_at = NULL, updated_at = ? WHERE id = ?`,
-  ).bind(body.webhookUrl ?? null, body.builtinStrategy ?? null, currentSeason().timing.bankInitialMs, at, row.id).run();
+       last_error = NULL, last_error_at = NULL, updated_at = ? WHERE id = ?`,
+  ).bind(body.webhookUrl ?? null, body.builtinStrategy ?? null, at, row.id).run();
   const bumped = await getBot(c.env.DB, row.id);
   await c.env.DB.prepare(
     "INSERT OR IGNORE INTO bot_versions (bot_id, version, deployed_at, note) VALUES (?, ?, ?, ?)",
@@ -364,8 +364,8 @@ for (const [path, status] of [["activate", "active"], ["deactivate", "idle"]] as
     const row = await ownedBot(c);
     if (row instanceof Response) return row;
     await c.env.DB.prepare(
-      "UPDATE bots SET status = ?, consecutive_failures = 0, time_bank_ms = ?, updated_at = ? WHERE id = ?",
-    ).bind(status, currentSeason().timing.bankInitialMs, nowIso(), row.id).run();
+      "UPDATE bots SET status = ?, consecutive_failures = 0, updated_at = ? WHERE id = ?",
+    ).bind(status, nowIso(), row.id).run();
     const updated = await getBot(c.env.DB, row.id);
     return c.json(await botToDetail(c.env, updated!, c.get("userName"), true));
   });
@@ -700,7 +700,8 @@ export default {
     ctx.waitUntil(
       (async () => {
         await ensureBuiltins(env);
-        await runLeagueBatch(env, currentSeason(), 20000);
+        // 1時間に1ラウンドなので予算は広く取る(cron の wall clock 上限は 15 分)
+        await runLeagueBatch(env, currentSeason(), 10 * 60_000);
       })(),
     );
   },

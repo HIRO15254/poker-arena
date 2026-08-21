@@ -7,7 +7,8 @@
     "typecheck": "tsc -b packages/protocol packages/engine packages/simulator",
     "sim": "tsx packages/simulator/src/cli.ts",
     "rake": "tsx packages/simulator/src/rake-report.ts",
-    "measure": "tsx packages/simulator/src/measure.ts"
+    "measure": "tsx packages/simulator/src/measure.ts",
+    "devkit": "node scripts/build-devkit.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

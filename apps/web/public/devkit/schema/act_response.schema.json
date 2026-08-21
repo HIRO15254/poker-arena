@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://poker-arena.dev/schema/act_response.schema.json",
+  "title": "ActResponse",
+  "description": "bot → アリーナ の応答。raise の amount は「そのストリートでの合計ベット額(raise to)」。不正な応答はタイムアウトと同様に check/fold 処理される。",
+  "oneOf": [
+    { "type": "object", "required": ["action"], "properties": { "action": { "enum": ["fold", "check", "call"] } }, "additionalProperties": false },
+    { "type": "object", "required": ["action", "amount"], "properties": { "action": { "const": "raise" }, "amount": { "type": "integer", "minimum": 1 } }, "additionalProperties": false }
+  ]
+}

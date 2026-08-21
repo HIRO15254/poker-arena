@@ -14,28 +14,22 @@ export interface RakeConfig {
   noFlopNoDrop: boolean;
 }
 
-/** アクションの制限時間とタイムバンク(SPEC §5) */
+/** アクションの制限時間(SPEC §5) */
 export interface TimingConfig {
-  /** Webhook 型の基本制限時間(ms) */
-  baseMsWebhook: number;
-  /** アップロード型(サンドボックス)の基本制限時間(ms) */
-  baseMsSandbox: number;
-  /** タイムバンクの初期値(ms) */
-  bankInitialMs: number;
-  /** ハンド開始ごとの回復量(ms) */
-  bankRefillPerHandMs: number;
-  /** タイムバンクの上限(ms) */
-  bankCapMs: number;
+  /**
+   * 1アクションの持ち時間(ms)。方式によらず一定。
+   *
+   * 以前は「基本時間 + タイムバンク」だったが、方式ごとに基本時間が違い、
+   * バンクの残高でも変わるため、同じ状況でも bot ごとに使える時間が違っていた。
+   * 全 bot 一律にすることで、制限時間が実力の一部として公平に働く。
+   */
+  actionMs: number;
   /** 連続でこの回数タイムアウト処理されたら自動離席 */
   autoErrorAfter: number;
 }
 
 export const DEFAULT_TIMING: TimingConfig = {
-  baseMsWebhook: 5000,
-  baseMsSandbox: 2000,
-  bankInitialMs: 1000,
-  bankRefillPerHandMs: 500,
-  bankCapMs: 10000,
+  actionMs: 1000,
   autoErrorAfter: 20,
 };
 

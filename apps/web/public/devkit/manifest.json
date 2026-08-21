@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-08-21T03:47:19.831Z",
+  "files": [
+    {
+      "path": "DEVKIT_README.md",
+      "bytes": 4617
+    },
+    {
+      "path": "README.md",
+      "bytes": 10258
+    },
+    {
+      "path": "check_bot.py",
+      "bytes": 311
+    },
+    {
+      "path": "docs/API.md",
+      "bytes": 4666
+    },
+    {
+      "path": "docs/BOT_DEVELOPMENT.md",
+      "bytes": 15414
+    },
+    {
+      "path": "docs/llms.txt",
+      "bytes": 7520
+    },
+    {
+      "path": "examples/always_call.py",
+      "bytes": 782
+    },
+    {
+      "path": "examples/equity_bot.py",
+      "bytes": 4087
+    },
+    {
+      "path": "examples/tight_bot.py",
+      "bytes": 9732
+    },
+    {
+      "path": "poker_arena/__init__.py",
+      "bytes": 2593
+    },
+    {
+      "path": "poker_arena/bot.py",
+      "bytes": 9871
+    },
+    {
+      "path": "poker_arena/cards.py",
+      "bytes": 7764
+    },
+    {
+      "path": "poker_arena/client.py",
+      "bytes": 6853
+    },
+    {
+      "path": "poker_arena/server.py",
+      "bytes": 7174
+    },
+    {
+      "path": "poker_arena/types.py",
+      "bytes": 4212
+    },
+    {
+      "path": "poker_arena/upload.py",
+      "bytes": 4593
+    },
+    {
+      "path": "pyproject.toml",
+      "bytes": 698
+    },
+    {
+      "path": "schema/act_request.schema.json",
+      "bytes": 2782
+    },
+    {
+      "path": "schema/act_response.schema.json",
+      "bytes": 727
+    },
+    {
+      "path": "tests/test_evaluator.py",
+      "bytes": 8067
+    },
+    {
+      "path": "tests/test_tight_bot.py",
+      "bytes": 5011
+    },
+    {
+      "path": "tests/test_upload.py",
+      "bytes": 3340
+    }
+  ],
+  "zip": {
+    "path": "/poker-arena-devkit.zip",
+    "bytes": 123636
+  }
+}

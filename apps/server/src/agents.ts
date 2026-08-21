@@ -25,44 +25,23 @@ export interface WebhookOutcome {
   lastError: string | null;
 }
 
-/**
- * タイムバンク。基本制限時間を超えた分だけ減り、ハンド開始ごとに回復する。
- * リーグのバッチをまたいで持ち越すため、値は bots テーブルに保存される。
- */
-export interface TimeBank {
-  ms: number;
-}
-
-/** ハンド開始時の回復。上限を超えない */
-export function refillBank(bank: TimeBank, refillPerHandMs: number, capMs: number): void {
-  bank.ms = Math.min(capMs, Math.max(0, bank.ms) + refillPerHandMs);
-}
 
 /**
  * Webhook bot を Agent 化する。
  * 応答が不正・遅延・HTTP エラーの場合は例外を投げ、エンジン側で check/fold に強制変換させる。
  *
- * 制限時間は `基本時間 + タイムバンク残高`。基本時間を超えた分はバンクから引かれる。
- * バンクが尽きたら基本時間ぴったりで打ち切られる。
+ * 持ち時間は方式によらず一定(`SeasonConfig.timing.actionMs`)。
+ * 超過した時点で打ち切り、エンジン側で check/fold に強制変換させる。
  */
 export function webhookAgent(
   url: string,
   secret: string,
-  baseMs: number,
-  bank: TimeBank,
+  actionMs: number,
   outcome: WebhookOutcome,
 ): Agent {
   return async (req: ActRequest): Promise<ActResponse> => {
-    const available = Math.max(0, bank.ms);
-    const budgetMs = baseMs + available;
-    // bot 側が残り時間を見て判断できるよう、リクエストに載せる
-    const body = JSON.stringify({ ...req, time_remaining_ms: baseMs, time_bank_ms: available });
-    const started = Date.now();
-    /** 基本時間の超過分をバンクから引く */
-    const settle = (): void => {
-      const over = Date.now() - started - baseMs;
-      if (over > 0) bank.ms = Math.max(0, bank.ms - over);
-    };
+    // 持ち時間は全 bot 一律。bot 側でも自分で計測できるよう残り時間を載せる
+    const body = JSON.stringify({ ...req, time_remaining_ms: actionMs });
     let res: Response;
     try {
       const signature = await hmacSha256Hex(secret, body);
@@ -74,15 +53,13 @@ export function webhookAgent(
           "x-arena-hand-id": req.hand_id,
         },
         body,
-        signal: AbortSignal.timeout(budgetMs),
+        signal: AbortSignal.timeout(actionMs),
       });
     } catch (err) {
-      settle();
       outcome.failures++;
       outcome.lastError = err instanceof Error ? err.message : "request failed";
       throw err;
     }
-    settle();
     if (!res.ok) {
       outcome.failures++;
       outcome.lastError = `HTTP ${res.status}`;

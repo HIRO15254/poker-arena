@@ -19,9 +19,7 @@
     }
   ],
   "routes": [{ "pattern": "vcode-poker-arena.hiro15254.com", "custom_domain": true }],
-  // リーグを一時停止中。再開するときはこの行のコメントを外して deploy する。
-  // 止めている間も、人間 vs bot のプレイ・リーダーボード閲覧・API は通常どおり動く。
-  // "triggers": { "crons": ["* * * * *"] },
-  "triggers": { "crons": [] },
+  // リーグは1時間に1ラウンド。持ち主が異なる bot 同士を総当たりで戦わせる。
+  "triggers": { "crons": ["0 * * * *"] },
   "observability": { "enabled": true }
 }
